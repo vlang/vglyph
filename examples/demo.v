@@ -87,7 +87,7 @@ fn frame(mut app App) {
 
 	// Check if renderer is initialized
 	if unsafe { app.renderer != 0 } {
-		app.renderer.draw_layout(app.layout, 10, 50)
+		app.renderer.draw_layout(app.layout, 10, 75)
 	}
 	app.ctx.end()
 }

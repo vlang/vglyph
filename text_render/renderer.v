@@ -122,22 +122,30 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 	match bmp.pixel_mode {
 		u8(C.FT_PIXEL_MODE_GRAY) {
 			for y in 0 .. height {
-				src := unsafe { bmp.buffer + y * bmp.pitch }
+				row := if bmp.pitch >= 0 {
+					unsafe { bmp.buffer + y * bmp.pitch }
+				} else {
+					unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) }
+				}
 				for x in 0 .. width {
-					v := unsafe { src[x] }
+					v := unsafe { row[x] }
 					i := (y * width + x) * 4
-					data[i + 0] = v
-					data[i + 1] = v
-					data[i + 2] = v
-					data[i + 3] = 255
+					data[i + 0] = 255
+					data[i + 1] = 255
+					data[i + 2] = 255
+					data[i + 3] = v
 				}
 			}
 		}
 		u8(C.FT_PIXEL_MODE_MONO) {
 			for y in 0 .. height {
-				src := unsafe { bmp.buffer + y * bmp.pitch }
+				row := if bmp.pitch >= 0 {
+					unsafe { bmp.buffer + y * bmp.pitch }
+				} else {
+					unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) }
+				}
 				for x in 0 .. width {
-					byte := unsafe { src[x >> 3] }
+					byte := unsafe { row[x >> 3] }
 					bit := 7 - (x & 7)
 					on := (byte >> bit) & 1
 					val := if on == 1 { u8(255) } else { u8(0) }
