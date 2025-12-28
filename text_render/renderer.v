@@ -2,103 +2,6 @@ module text_render
 
 import gg
 
-pub struct CachedGlyph {
-pub:
-	image gg.Image
-	left  int
-	top   int
-}
-
-pub struct Renderer {
-mut:
-	ctx   &gg.Context
-	cache map[u64]CachedGlyph
-}
-
-pub fn new_renderer(ctx &gg.Context) &Renderer {
-	return &Renderer{
-		ctx:   ctx
-		cache: map[u64]CachedGlyph{}
-	}
-}
-
-pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
-	mut cx := x
-	mut cy := y
-
-	for item in layout.items {
-		font_id := u64(voidptr(item.font.ft_face))
-
-		for glyph in item.glyphs {
-			key := font_id ^ (u64(glyph.index) << 32)
-
-			if key !in r.cache {
-				cg := r.load_glyph(item.font, glyph.index)
-				r.cache[key] = cg
-			}
-
-			cg := r.cache[key] or { CachedGlyph{} }
-
-			// Position
-			draw_x := cx + f32(glyph.x_offset) + f32(cg.left)
-			draw_y := cy - f32(glyph.y_offset) - f32(cg.top)
-
-			if cg.image.id != 0 {
-				r.ctx.draw_image(draw_x, draw_y, f32(cg.image.width), f32(cg.image.height),
-					cg.image)
-			}
-
-			cx += f32(glyph.x_advance)
-			cy -= f32(glyph.y_advance)
-		}
-	}
-}
-
-fn (mut r Renderer) load_glyph(font &Font, index u32) CachedGlyph {
-	if C.FT_Load_Glyph(font.ft_face, index, 0) != 0 {
-		return CachedGlyph{}
-	}
-	C.FT_Render_Glyph(font.ft_face.glyph, C.ft_render_mode_normal)
-
-	bitmap := font.ft_face.glyph.bitmap
-	width := int(bitmap.width)
-	height := int(bitmap.rows)
-
-	if width == 0 || height == 0 {
-		return CachedGlyph{
-			image: gg.Image{
-				id: 0
-			}
-			left:  0
-			top:   0
-		}
-	}
-
-	ft_bmp := ft_bitmap_to_bitmap(&bitmap) or { panic('ouch') }
-	img := create_image_from_bitmap(mut r.ctx, &ft_bmp)
-
-	return CachedGlyph{
-		image: img
-		left:  int(font.ft_face.glyph.bitmap_left)
-		top:   int(font.ft_face.glyph.bitmap_top)
-	}
-}
-
-fn create_image_from_bitmap(mut ctx gg.Context, bitmap &Bitmap) gg.Image {
-	mut img := gg.Image{
-		width:       bitmap.width
-		height:      bitmap.height
-		nr_channels: bitmap.channels
-		data:        bitmap.data.data
-	}
-
-	img.init_sokol_image()
-	img.id = ctx.cache_image(img)
-	return img
-}
-
-// Convert a FreeType FT_Bitmap to a V image.Image
-// Result container
 pub struct Bitmap {
 pub:
 	width    int
@@ -107,16 +10,99 @@ pub:
 	data     []u8
 }
 
+pub struct Renderer {
+mut:
+	ctx   &gg.Context
+	atlas GlyphAtlas
+	cache map[u64]CachedGlyph
+}
+
+pub fn new_renderer(mut ctx gg.Context) &Renderer {
+	mut atlas := new_glyph_atlas(mut ctx, 1024, 1024) // 1024x1024 default atlas
+	return &Renderer{
+		ctx:   ctx
+		atlas: atlas
+		cache: map[u64]CachedGlyph{}
+	}
+}
+
+pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
+	mut cx := x
+	mut cy := y
+
+	if r.atlas.dirty {
+		r.atlas.image.update_pixel_data(r.atlas.image.data)
+		r.atlas.dirty = false
+	}
+
+	for item in layout.items {
+		font_id := u64(voidptr(item.font.ft_face))
+
+		for glyph in item.glyphs {
+			key := font_id ^ (u64(glyph.index) << 32)
+
+			// Load glyph into atlas if not cached
+			if key !in r.cache {
+				cg := r.load_glyph(item.font, glyph.index) or { continue }
+				r.cache[key] = cg
+			}
+
+			cg := r.cache[key] or { continue }
+
+			// Compute position
+			draw_x := cx + f32(glyph.x_offset) + f32(cg.left)
+			draw_y := cy - f32(glyph.y_offset) - f32(cg.top)
+
+			glyph_w := f32((cg.u1 - cg.u0) * f32(r.atlas.width))
+			glyph_h := f32((cg.v1 - cg.v0) * f32(r.atlas.height))
+
+			// Draw from atlas using UVs
+			dst := gg.Rect{
+				x:      draw_x
+				y:      draw_y
+				width:  glyph_w
+				height: glyph_h
+			}
+			src := gg.Rect{
+				x:      cg.u0 * f32(r.atlas.width)
+				y:      cg.v0 * f32(r.atlas.height)
+				width:  (cg.u1 - cg.u0) * f32(r.atlas.width)
+				height: (cg.v1 - cg.v0) * f32(r.atlas.height)
+			}
+
+			r.ctx.draw_rect_empty(dst.x, dst.y, dst.width, dst.height, gg.blue)
+			r.ctx.draw_image_part(dst, src, &r.atlas.image)
+
+			// Advance cursor
+			cx += f32(glyph.x_advance)
+			cy -= f32(glyph.y_advance)
+		}
+	}
+}
+
+// Load a glyph, render to bitmap, insert into atlas, and return UVs
+fn (mut r Renderer) load_glyph(font &Font, index u32) !CachedGlyph {
+	if C.FT_Load_Glyph(font.ft_face, index, 0) != 0 {
+		return CachedGlyph{}
+	}
+	C.FT_Render_Glyph(font.ft_face.glyph, C.ft_render_mode_normal)
+
+	bitmap := font.ft_face.glyph.bitmap
+	ft_bmp := ft_bitmap_to_bitmap(&bitmap)!
+
+	cached := r.atlas.insert_bitmap(ft_bmp, int(font.ft_face.glyph.bitmap_left), int(font.ft_face.glyph.bitmap_top))
+	return cached
+}
+
 // Convert FreeType FT_Bitmap → RGBA bitmap
 pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
-	if bmp.buffer == 0 {
-		return error('FT_Bitmap buffer is null')
+	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
+		return error('Empty bitmap')
 	}
 
 	width := int(bmp.width)
 	height := int(bmp.rows)
 	channels := 4
-
 	mut data := []u8{len: width * height * channels, init: 0}
 
 	match bmp.pixel_mode {
@@ -159,7 +145,14 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 			}
 		}
 		else {
-			return error('Unsupported FT_Bitmap pixel mode: ${bmp.pixel_mode}')
+			// fallback for unsupported formats
+			println('Warning: unsupported pixel_mode=${bmp.pixel_mode}, using blank glyph')
+			return Bitmap{
+				width:    width
+				height:   height
+				channels: channels
+				data:     data
+			}
 		}
 	}
 
