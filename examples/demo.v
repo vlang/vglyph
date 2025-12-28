@@ -15,6 +15,7 @@ mut:
 struct FontDef {
 	name string
 	path string
+	size int
 }
 
 fn main() {
@@ -52,11 +53,11 @@ fn init(mut app App) {
 	}
 
 	fonts := [
-		FontDef{'arial', os.join_path(base_path, 'assets/fonts/NotoSans-Regular.ttf')},
-		FontDef{'arabic', os.join_path(base_path, 'assets/fonts/NotoSansArabic-Regular.ttf')},
-		FontDef{'japanese', os.join_path(base_path, 'assets/fonts/NotoSansCJKjp-Regular.otf')},
-		FontDef{'emoji', os.join_path(base_path, 'assets/fonts/NotoSansSymbols2-Regular.ttf')},
-		FontDef{'emoji', os.join_path(base_path, 'assets/fonts/NotoColorEmoji.ttf')},
+		FontDef{'arial', os.join_path(base_path, 'assets/fonts/NotoSans-Regular.ttf'), 30},
+		FontDef{'arabic', os.join_path(base_path, 'assets/fonts/NotoSansArabic-Regular.ttf'), 30},
+		FontDef{'japanese', os.join_path(base_path, 'assets/fonts/NotoSansCJKjp-Regular.otf'), 30},
+		FontDef{'emoji-color', os.join_path(base_path, 'assets/fonts/NotoColorEmoji.ttf'), 20},
+		FontDef{'emoji', os.join_path(base_path, 'assets/fonts/NotoSansSymbols2-Regular.ttf'), 30},
 	]
 
 	mut loaded_names := []string{}
@@ -64,7 +65,7 @@ fn init(mut app App) {
 	for f in fonts {
 		if os.exists(f.path) {
 			println('Loading ${f.name} from ${f.path}')
-			app.tr_ctx.load_font(f.name, f.path, 30) or {
+			app.tr_ctx.load_font(f.name, f.path, f.size) or {
 				println('Failed to load ${f.name}')
 				continue
 			}

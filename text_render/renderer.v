@@ -27,13 +27,14 @@ pub fn new_renderer(mut ctx gg.Context) &Renderer {
 }
 
 pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
-	mut cx := x
-	mut cy := y
-
+	// If atlas has new glyphs, update GPU once
 	if r.atlas.dirty {
 		r.atlas.image.update_pixel_data(r.atlas.image.data)
 		r.atlas.dirty = false
 	}
+
+	mut cx := x
+	mut cy := y
 
 	for item in layout.items {
 		font_id := u64(voidptr(item.font.ft_face))
@@ -43,20 +44,30 @@ pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
 
 			// Load glyph into atlas if not cached
 			if key !in r.cache {
-				cg := r.load_glyph(item.font, glyph.index) or { continue }
+				cg := r.load_glyph(item.font, glyph.index) or {
+					// fallback blank glyph
+					CachedGlyph{
+						u0:   0
+						v0:   0
+						u1:   0
+						v1:   0
+						left: 0
+						top:  0
+					}
+				}
 				r.cache[key] = cg
 			}
 
 			cg := r.cache[key] or { continue }
 
-			// Compute position
+			// Compute draw position
 			draw_x := cx + f32(glyph.x_offset) + f32(cg.left)
 			draw_y := cy - f32(glyph.y_offset) - f32(cg.top)
 
 			glyph_w := f32((cg.u1 - cg.u0) * f32(r.atlas.width))
 			glyph_h := f32((cg.v1 - cg.v0) * f32(r.atlas.height))
 
-			// Draw from atlas using UVs
+			// Destination and source rects
 			dst := gg.Rect{
 				x:      draw_x
 				y:      draw_y
@@ -70,8 +81,6 @@ pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
 				height: (cg.v1 - cg.v0) * f32(r.atlas.height)
 			}
 
-			// r.ctx.draw_rect_empty(dst.x, dst.y, dst.width, dst.height, gg.blue)
-
 			if cg.u0 != cg.u1 && cg.v0 != cg.v1 {
 				r.ctx.draw_image_part(dst, src, &r.atlas.image)
 			}
@@ -83,50 +92,43 @@ pub fn (mut r Renderer) draw_layout(layout Layout, x f32, y f32) {
 	}
 }
 
-// Load a glyph, render to bitmap, insert into atlas, and return UVs
 fn (mut r Renderer) load_glyph(font &Font, index u32) !CachedGlyph {
-	// Load glyph outline or bitmap
-	if C.FT_Load_Glyph(font.ft_face, index, C.FT_LOAD_COLOR) != 0 {
+	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR
+
+	if C.FT_Load_Glyph(font.ft_face, index, flags) != 0 {
 		return error('FT_Load_Glyph failed')
 	}
 
-	// Only render grayscale glyphs
-	if font.ft_face.glyph.bitmap.buffer == 0 {
-		// Not rendered yet → render it
-		C.FT_Render_Glyph(font.ft_face.glyph, C.ft_render_mode_normal)
+	bmp := font.ft_face.glyph.bitmap
+
+	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
+		return CachedGlyph{} // space or empty glyph
 	}
 
-	// Still no bitmap? (space, zero-width, etc.)
-	if font.ft_face.glyph.bitmap.buffer == 0 {
-		return CachedGlyph{
-			left: int(font.ft_face.glyph.bitmap_left)
-			top:  int(font.ft_face.glyph.bitmap_top)
-		}
-	}
-
-	// Convert bitmap to RGBA
-	ftbmp := ft_bitmap_to_bitmap(&font.ft_face.glyph.bitmap)!
-	return r.atlas.insert_bitmap(ftbmp, int(font.ft_face.glyph.bitmap_left), int(font.ft_face.glyph.bitmap_top))
+	bitmap := ft_bitmap_to_bitmap(&bmp)!
+	return r.atlas.insert_bitmap(bitmap, int(font.ft_face.glyph.bitmap_left), int(font.ft_face.glyph.bitmap_top))
 }
 
-// Convert FreeType FT_Bitmap → RGBA bitmap
 pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
 		return error('Empty bitmap')
 	}
 
-	width := int(bmp.width)
-	height := int(bmp.rows)
+	mut width := int(bmp.width)
+	mut height := int(bmp.rows)
 	channels := 4
-	mut data := []u8{len: width * height * channels, init: 0}
+
+	mut data := []u8{len: width * height * channels, init: unsafe { bmp.buffer[index] }}
 
 	match bmp.pixel_mode {
 		u8(C.FT_PIXEL_MODE_GRAY) {
 			for y in 0 .. height {
-				row := if bmp.pitch >= 0 {
-					unsafe { bmp.buffer + y * bmp.pitch }
-				} else {
-					unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) }
+				row := unsafe {
+					if bmp.pitch >= 0 {
+						bmp.buffer + y * bmp.pitch
+					} else {
+						bmp.buffer + (height - 1 - y) * (-bmp.pitch)
+					}
 				}
 				for x in 0 .. width {
 					v := unsafe { row[x] }
@@ -140,16 +142,17 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 		}
 		u8(C.FT_PIXEL_MODE_MONO) {
 			for y in 0 .. height {
-				row := if bmp.pitch >= 0 {
-					unsafe { bmp.buffer + y * bmp.pitch }
-				} else {
-					unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) }
+				row := unsafe {
+					if bmp.pitch >= 0 {
+						bmp.buffer + y * bmp.pitch
+					} else {
+						bmp.buffer + (height - 1 - y) * (-bmp.pitch)
+					}
 				}
 				for x in 0 .. width {
 					byte := unsafe { row[x >> 3] }
 					bit := 7 - (x & 7)
-					on := (byte >> bit) & 1
-					val := if on == 1 { u8(255) } else { u8(0) }
+					val := if ((byte >> bit) & 1) != 0 { u8(255) } else { u8(0) }
 
 					i := (y * width + x) * 4
 					data[i + 0] = val
@@ -171,16 +174,18 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 					data[i + 3] = unsafe { src[3] } // A
 				}
 			}
+			// if bmp.pixel_mode == C.FT_PIXEL_MODE_BGRA {
+			// 	scale := f32(30) / f32(height)
+			// 	new_w := int(f32(width) * scale)
+			// 	new_h := int(f32(height) * scale)
+			//
+			// 	data = scale_bitmap_nn(data, width, height, new_w, new_h)
+			// 	width = new_w
+			// 	height = new_h
+			// }
 		}
 		else {
-			// fallback for unsupported formats
-			println('Warning: unsupported pixel_mode=${bmp.pixel_mode}, using blank glyph')
-			return Bitmap{
-				width:    width
-				height:   height
-				channels: channels
-				data:     data
-			}
+			return error('Unsupported FT pixel mode: ${bmp.pixel_mode}')
 		}
 	}
 
@@ -190,4 +195,22 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap) !Bitmap {
 		channels: channels
 		data:     data
 	}
+}
+
+// Scale RGBA bitmap using nearest-neighbor
+pub fn scale_bitmap_nn(src []u8, src_w int, src_h int, dst_w int, dst_h int) []u8 {
+	mut dst := []u8{len: dst_w * dst_h * 4, init: 0}
+	for y in 0 .. dst_h {
+		for x in 0 .. dst_w {
+			src_x := int(f32(x) * f32(src_w) / f32(dst_w))
+			src_y := int(f32(y) * f32(src_h) / f32(dst_h))
+			src_idx := (src_y * src_w + src_x) * 4
+			dst_idx := (y * dst_w + x) * 4
+			dst[dst_idx + 0] = src[src_idx + 0]
+			dst[dst_idx + 1] = src[src_idx + 1]
+			dst[dst_idx + 2] = src[src_idx + 2]
+			dst[dst_idx + 3] = src[src_idx + 3]
+		}
+	}
+	return dst
 }
