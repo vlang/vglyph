@@ -71,7 +71,6 @@ pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) Cache
 		panic('GlyphAtlas full! Increase atlas size.')
 	}
 
-	// Copy pixels into CPU buffer
 	copy_bitmap_to_atlas(mut atlas, bmp, atlas.cursor_x, atlas.cursor_y)
 	atlas.dirty = true
 
@@ -139,18 +138,15 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, font &Font) !Bitmap {
 	mut width := int(bmp.width)
 	mut height := int(bmp.rows)
 	channels := 4
-
-	mut data := []u8{len: width * height * channels, init: unsafe { bmp.buffer[index] }}
+	length := width * height * channels
+	mut data := unsafe { bmp.buffer.vbytes(length).clone() }
 
 	match bmp.pixel_mode {
 		u8(C.FT_PIXEL_MODE_GRAY) {
 			for y in 0 .. height {
-				row := unsafe {
-					if bmp.pitch >= 0 {
-						bmp.buffer + y * bmp.pitch
-					} else {
-						bmp.buffer + (height - 1 - y) * (-bmp.pitch)
-					}
+				row := match bmp.pitch >= 0 {
+					true { unsafe { bmp.buffer + y * bmp.pitch } }
+					else { unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) } }
 				}
 				for x in 0 .. width {
 					v := unsafe { row[x] }
@@ -164,12 +160,9 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, font &Font) !Bitmap {
 		}
 		u8(C.FT_PIXEL_MODE_MONO) {
 			for y in 0 .. height {
-				row := unsafe {
-					if bmp.pitch >= 0 {
-						bmp.buffer + y * bmp.pitch
-					} else {
-						bmp.buffer + (height - 1 - y) * (-bmp.pitch)
-					}
+				row := match bmp.pitch >= 0 {
+					true { unsafe { bmp.buffer + y * bmp.pitch } }
+					else { unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) } }
 				}
 				for x in 0 .. width {
 					byte := unsafe { row[x >> 3] }
@@ -186,12 +179,9 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, font &Font) !Bitmap {
 		}
 		u8(C.FT_PIXEL_MODE_BGRA) {
 			for y in 0 .. height {
-				row := unsafe {
-					if bmp.pitch >= 0 {
-						bmp.buffer + y * bmp.pitch
-					} else {
-						bmp.buffer + (height - 1 - y) * (-bmp.pitch)
-					}
+				row := match bmp.pitch >= 0 {
+					true { unsafe { bmp.buffer + y * bmp.pitch } }
+					else { unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) } }
 				}
 				for x in 0 .. width {
 					src := unsafe { row + x * 4 }
