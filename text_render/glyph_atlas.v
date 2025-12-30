@@ -52,7 +52,7 @@ fn new_glyph_atlas(mut ctx gg.Context, w int, h int) GlyphAtlas {
 }
 
 // Insert a bitmap into the atlas and return its UVs
-pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) CachedGlyph {
+pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) !CachedGlyph {
 	glyph_w := bmp.width
 	glyph_h := bmp.height
 
@@ -64,7 +64,7 @@ pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) Cache
 	}
 
 	if atlas.cursor_y + glyph_h > atlas.height {
-		panic('GlyphAtlas full! Increase atlas size.')
+		return error('GlyphAtlas full! Increase atlas size.')
 	}
 
 	copy_bitmap_to_atlas(mut atlas, bmp, atlas.cursor_x, atlas.cursor_y)

@@ -37,6 +37,7 @@ fn main() {
 	)
 
 	app.ctx.run()
+	app.tr_ctx.free()
 }
 
 fn init(mut app App) {
@@ -76,7 +77,7 @@ fn init(mut app App) {
 	}
 
 	text := 'Hello السلام Verden 🌍9局て脂済事つまきな政98院'
-	app.layout = app.tr_ctx.layout_text(text, loaded_names)
+	app.layout = app.tr_ctx.layout_text(text, loaded_names) or { panic(err.msg()) }
 	app.renderer = text_render.new_renderer(mut app.ctx)
 }
 

@@ -23,10 +23,10 @@ pub:
 }
 
 // simple fallback: find first font that supports the rune
-fn find_font_for_rune(ctx &Context, fonts []string, r rune) &Font {
+fn find_font_for_rune(ctx &Context, fonts []string, r rune) !&Font {
 	for name in fonts {
 		if name in ctx.fonts {
-			f := ctx.fonts[name] or { panic('unreachable') }
+			f := ctx.fonts[name] or { return error('ctx.fonts[${name}] not found') }
 			if f.has_glyph(u32(r)) {
 				return f
 			}
@@ -34,24 +34,24 @@ fn find_font_for_rune(ctx &Context, fonts []string, r rune) &Font {
 	}
 	// Fallback to first font if none found
 	if fonts.len > 0 {
-		return ctx.fonts[fonts[0]] or { panic('Font not loaded') }
+		return ctx.fonts[fonts[0]] or { error('Fallback to first font failed') }
 	}
-	panic('No fonts loaded')
+	return error('No fonts loaded')
 }
 
-pub fn (mut ctx Context) layout_text(text string, font_names []string) Layout {
+pub fn (mut ctx Context) layout_text(text string, font_names []string) !Layout {
 	if text.len == 0 {
 		return Layout{}
 	}
 
-	mut runs := []Run{}
+	mut runs := []Run{cap: 1}
 	runes := text.runes()
 
-	mut current_font := find_font_for_rune(ctx, font_names, runes[0])
-	mut current_text := []rune{}
+	mut current_font := find_font_for_rune(ctx, font_names, runes[0])!
+	mut current_text := []rune{cap: runes.len}
 
 	for r in runes {
-		f := find_font_for_rune(ctx, font_names, r)
+		f := find_font_for_rune(ctx, font_names, r)!
 
 		if voidptr(f) != voidptr(current_font) {
 			runs << Run{
@@ -59,8 +59,7 @@ pub fn (mut ctx Context) layout_text(text string, font_names []string) Layout {
 				text: current_text.string()
 			}
 			current_text = []rune{}
-			// Use unsafe assignment to bypass strict mutability check if confusing compiler
-			current_font = unsafe { f }
+			current_font = unsafe { f } // bypass strict mutability check
 		}
 		current_text << r
 	}
@@ -70,7 +69,7 @@ pub fn (mut ctx Context) layout_text(text string, font_names []string) Layout {
 	}
 
 	// Shape each run
-	mut items := []Item{}
+	mut items := []Item{cap: runs.len}
 	for run in runs {
 		items << ctx.shape_run(run)
 	}
@@ -97,7 +96,7 @@ fn (mut ctx Context) shape_run(run Run) Item {
 	infos := C.hb_buffer_get_glyph_infos(buf, &length)
 	positions := C.hb_buffer_get_glyph_positions(buf, &length)
 
-	mut glyphs := []Glyph{}
+	mut glyphs := []Glyph{cap: int(length)}
 	mut total_width := f64(0)
 
 	unsafe {

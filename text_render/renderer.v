@@ -43,11 +43,11 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 			key := font_id ^ (u64(glyph.index) << 32)
 
 			cg := renderer.cache[key] or {
-				lg := renderer.load_glyph(item.font, glyph.index) or {
+				cached_glyph := renderer.load_glyph(item.font, glyph.index) or {
 					CachedGlyph{} // fallback blank glyph
 				}
-				renderer.cache[key] = lg
-				lg
+				renderer.cache[key] = cached_glyph
+				cached_glyph
 			}
 
 			// Compute draw position
@@ -57,21 +57,20 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 			glyph_w := f32((cg.u1 - cg.u0) * f32(renderer.atlas.width))
 			glyph_h := f32((cg.v1 - cg.v0) * f32(renderer.atlas.height))
 
-			// Destination and source rects
-			dst := gg.Rect{
-				x:      draw_x
-				y:      draw_y
-				width:  glyph_w
-				height: glyph_h
-			}
-			src := gg.Rect{
-				x:      cg.u0 * f32(renderer.atlas.width)
-				y:      cg.v0 * f32(renderer.atlas.height)
-				width:  (cg.u1 - cg.u0) * f32(renderer.atlas.width)
-				height: (cg.v1 - cg.v0) * f32(renderer.atlas.height)
-			}
-
+			// Draw image from glyph atlas
 			if cg.u0 != cg.u1 && cg.v0 != cg.v1 {
+				dst := gg.Rect{
+					x:      draw_x
+					y:      draw_y
+					width:  glyph_w
+					height: glyph_h
+				}
+				src := gg.Rect{
+					x:      cg.u0 * f32(renderer.atlas.width)
+					y:      cg.v0 * f32(renderer.atlas.height)
+					width:  (cg.u1 - cg.u0) * f32(renderer.atlas.width)
+					height: (cg.v1 - cg.v0) * f32(renderer.atlas.height)
+				}
 				renderer.ctx.draw_image_part(dst, src, &renderer.atlas.image)
 			}
 

@@ -2,10 +2,9 @@ module text_render
 
 pub struct Font {
 pub:
-	name  string
-	path  string
-	size  int
-	scale f32 = 1
+	name string
+	path string
+	size int
 mut:
 	ft_face &C.FT_FaceRec
 	hb_font &C.hb_font_t
@@ -13,7 +12,7 @@ mut:
 
 pub fn (mut ctx Context) load_font(name string, path string, size int) !&Font {
 	if name in ctx.fonts {
-		return ctx.fonts[name] or { panic('unreachable') }
+		return ctx.fonts[name] or { return error('unreachable') }
 	}
 
 	mut ft_face := &C.FT_FaceRec(unsafe { nil })
