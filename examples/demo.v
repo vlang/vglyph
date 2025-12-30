@@ -85,7 +85,7 @@ fn frame(mut app App) {
 	app.ctx.begin()
 
 	if unsafe { app.renderer != 0 } {
-		app.renderer.draw_layout(app.layout, 10, 75)
+		app.renderer.draw_layout(app.layout, 0, 0)
 	}
 
 	app.ctx.end()

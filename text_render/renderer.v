@@ -34,7 +34,7 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 	}
 
 	mut cx := x
-	mut cy := y
+	mut cy := y + renderer.max_visual_height(layout)
 
 	for item in layout.items {
 		font_id := u64(voidptr(item.font.ft_face))
@@ -81,4 +81,40 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 
 		// r.ctx.draw_image(10, 100, 1024, 1024, r.atlas.image)
 	}
+}
+
+fn (mut renderer Renderer) max_visual_height(layout Layout) f32 {
+	mut top := f32(0)
+	mut bottom := f32(0)
+
+	for item in layout.items {
+		font_id := u64(voidptr(item.font.ft_face))
+
+		for glyph in item.glyphs {
+			key := font_id ^ (u64(glyph.index) << 32)
+
+			cg := renderer.cache[key] or {
+				cached_glyph := renderer.load_glyph(item.font, glyph.index) or {
+					CachedGlyph{} // fallback blank glyph
+				}
+				renderer.cache[key] = cached_glyph
+				cached_glyph
+			}
+
+			// FreeType convention:
+			//  - cg.top is bitmap_top
+			//  - glyph.y_offset is HarfBuzz vertical offset (pixels)
+			glyph_top := f32(cg.top - glyph.y_offset)
+			glyph_height := (cg.v1 - cg.v0) * f32(renderer.atlas.height)
+			glyph_bottom := glyph_top - glyph_height
+
+			if glyph_top > top {
+				top = glyph_top
+			}
+			if glyph_bottom < bottom {
+				bottom = glyph_bottom
+			}
+		}
+	}
+	return top - bottom
 }
