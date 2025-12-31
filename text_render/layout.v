@@ -34,6 +34,12 @@ pub:
 	has_overline            bool
 	overline_offset         f64
 	overline_thickness      f64
+
+	// Background
+	has_bg_color bool
+	bg_color     gg.Color
+	ascent       f64
+	descent      f64
 }
 
 pub struct Glyph {
@@ -124,6 +130,8 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 					// Get color attributes
 					// Default to white
 					mut item_color := gg.Color{255, 255, 255, 255}
+					mut has_bg_color := false
+					mut item_bg_color := gg.Color{0, 0, 0, 0}
 					mut has_underline := false
 					mut has_strikethrough := false
 					mut has_overline := false
@@ -145,6 +153,15 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 									color_attr := &C.PangoAttrColor(attr)
 									// PangoColor is 16-bit (0-65535). Convert to 8-bit.
 									item_color = gg.Color{
+										r: u8(color_attr.color.red >> 8)
+										g: u8(color_attr.color.green >> 8)
+										b: u8(color_attr.color.blue >> 8)
+										a: 255
+									}
+								} else if attr_type == .pango_attr_background {
+									color_attr := &C.PangoAttrColor(attr)
+									has_bg_color = true
+									item_bg_color = gg.Color{
 										r: u8(color_attr.color.red >> 8)
 										g: u8(color_attr.color.green >> 8)
 										b: u8(color_attr.color.blue >> 8)
@@ -222,10 +239,28 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 						}
 					}
 
+					// Get logical extents for ascent/descent (used for background rect)
+					// run_y is baseline.
+					// logical_rect tells us the design height.
+					// pango_layout_iter_get_run_extents gives logical_rect relative to layout top.
+					// We need ascent/descent relative to baseline.
+
 					// Get run extents (for X position)
 					logical_rect := C.PangoRectangle{}
 					C.pango_layout_iter_get_run_extents(iter, unsafe { nil }, &logical_rect)
 					run_x := f64(logical_rect.x) / f64(pango_scale)
+					// run_y is baseline.
+					// logical_rect tells us the design height.
+					// pango_layout_iter_get_run_extents gives logical_rect relative to layout top.
+					// We need ascent/descent relative to baseline.
+
+					// Re-fetch baseline (iter-based) in Pango units
+					baseline_pango := C.pango_layout_iter_get_baseline(iter)
+					ascent_pango := baseline_pango - logical_rect.y
+					descent_pango := (logical_rect.y + logical_rect.height) - baseline_pango
+
+					run_ascent := f64(ascent_pango) / f64(pango_scale)
+					run_descent := f64(descent_pango) / f64(pango_scale)
 
 					// Get baseline (for Y position) - this is absolute Y within layout of the baseline
 					baseline := C.pango_layout_iter_get_baseline(iter)
@@ -286,6 +321,10 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 						has_overline:            has_overline
 						overline_offset:         over_pos
 						overline_thickness:      over_thick
+						has_bg_color:            has_bg_color
+						bg_color:                item_bg_color
+						ascent:                  run_ascent
+						descent:                 run_descent
 					}
 				}
 			}

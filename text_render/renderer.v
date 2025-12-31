@@ -67,6 +67,17 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 		mut cx := x + f32(item.x)
 		mut cy := y + f32(item.y) // Baseline
 
+		// Draw Background Color
+		if item.has_bg_color {
+			bg_x := cx
+			// item.y is baseline. Ascent is positive up.
+			// so top is cy - ascent.
+			bg_y := cy - f32(item.ascent)
+			bg_w := f32(item.width)
+			bg_h := f32(item.ascent + item.descent)
+			renderer.ctx.draw_rect_filled(bg_x, bg_y, bg_w, bg_h, item.bg_color)
+		}
+
 		for glyph in item.glyphs {
 			key := font_id ^ (u64(glyph.index) << 32)
 
