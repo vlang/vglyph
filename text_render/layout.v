@@ -83,11 +83,51 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		return Layout{}
 	}
 
+	layout := setup_pango_layout(mut ctx, text, cfg) or { return err }
+	defer { C.g_object_unref(layout) }
+
+	iter := C.pango_layout_get_iter(layout)
+	if iter == unsafe { nil } {
+		return error('Failed to create Pango Layout Iterator')
+	}
+	defer { C.pango_layout_iter_free(iter) }
+
+	mut items := []Item{}
+
+	for {
+		// PangoLayoutRun is a typedef for PangoGlyphItem
+		run_ptr := C.pango_layout_iter_get_run_readonly(iter)
+		if run_ptr != unsafe { nil } {
+			// Explicit cast since V treats C.PangoGlyphItem and C.PangoLayoutRun as distinct types
+			run := unsafe { &C.PangoLayoutRun(run_ptr) }
+			item := process_run(run, iter, text)
+			if item.glyphs.len > 0 {
+				items << item
+			}
+		}
+
+		if !C.pango_layout_iter_next_run(iter) {
+			break
+		}
+	}
+
+	char_rects := bake_hit_test_rects(layout, text)
+
+	return Layout{
+		items:      items
+		char_rects: char_rects
+	}
+}
+
+// Helper functions
+
+// setup_pango_layout creates and configures a new PangoLayout object.
+// It applies text, markup, wrapping, alignment, and font settings.
+fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLayout {
 	layout := C.pango_layout_new(ctx.pango_context)
 	if layout == unsafe { nil } {
 		return error('Failed to create Pango Layout')
 	}
-	defer { C.g_object_unref(layout) }
 
 	if cfg.use_markup {
 		C.pango_layout_set_markup(layout, text.str, text.len)
@@ -108,255 +148,234 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		C.pango_font_description_free(desc)
 	}
 
-	iter := C.pango_layout_get_iter(layout)
-	if iter == unsafe { nil } {
-		return error('Failed to create Pango Layout Iterator')
+	return layout
+}
+
+struct RunAttributes {
+pub mut:
+	color             gg.Color
+	has_bg_color      bool
+	bg_color          gg.Color
+	has_underline     bool
+	has_strikethrough bool
+	has_overline      bool
+}
+
+// parse_run_attributes iterates through Pango attributes for a given item
+// and extracts relevant visual properties like color and text decorations.
+fn parse_run_attributes(pango_item &C.PangoItem) RunAttributes {
+	mut attrs := RunAttributes{
+		color:    gg.Color{255, 255, 255, 255}
+		bg_color: gg.Color{0, 0, 0, 0}
 	}
-	defer { C.pango_layout_iter_free(iter) }
 
-	mut items := []Item{}
+	// Iterate GSList of attributes
+	mut curr_attr_node := unsafe { &C.GSList(pango_item.analysis.extra_attrs) }
+	if curr_attr_node != unsafe { nil } {
+		for {
+			unsafe {
+				if curr_attr_node == nil {
+					break
+				}
+				attr := &C.PangoAttribute(curr_attr_node.data)
+				attr_type := attr.klass.type
 
-	for {
-		run := C.pango_layout_iter_get_run_readonly(iter)
-		if run != unsafe { nil } {
-			pango_item := run.item
-			pango_font := pango_item.analysis.font
-
-			// Critical: Get FT_Face from PangoFont
-			// Pango might return NULL font for generic fallback if not found?
-			if pango_font != unsafe { nil } {
-				ft_face := C.pango_ft2_font_get_face(pango_font)
-				if ft_face != unsafe { nil } {
-					// Get color attributes
-					// Default to white
-					mut item_color := gg.Color{255, 255, 255, 255}
-					mut has_bg_color := false
-					mut item_bg_color := gg.Color{0, 0, 0, 0}
-					mut has_underline := false
-					mut has_strikethrough := false
-					mut has_overline := false
-
-					// Iterate GSList of attributes
-					mut curr_attr_node := unsafe { &C.GSList(pango_item.analysis.extra_attrs) }
-					// extra_attrs allows NULL if list is empty
-					if curr_attr_node != unsafe { nil } {
-						for {
-							unsafe {
-								if curr_attr_node == nil {
-									break
-								}
-
-								attr := &C.PangoAttribute(curr_attr_node.data)
-								attr_type := attr.klass.type
-
-								if attr_type == .pango_attr_foreground {
-									color_attr := &C.PangoAttrColor(attr)
-									// PangoColor is 16-bit (0-65535). Convert to 8-bit.
-									item_color = gg.Color{
-										r: u8(color_attr.color.red >> 8)
-										g: u8(color_attr.color.green >> 8)
-										b: u8(color_attr.color.blue >> 8)
-										a: 255
-									}
-								} else if attr_type == .pango_attr_background {
-									color_attr := &C.PangoAttrColor(attr)
-									has_bg_color = true
-									item_bg_color = gg.Color{
-										r: u8(color_attr.color.red >> 8)
-										g: u8(color_attr.color.green >> 8)
-										b: u8(color_attr.color.blue >> 8)
-										a: 255
-									}
-								} else if attr_type == .pango_attr_underline {
-									int_attr := &C.PangoAttrInt(attr)
-									if int_attr.value != int(PangoUnderline.pango_underline_none) {
-										has_underline = true
-									}
-								} else if attr_type == .pango_attr_strikethrough {
-									int_attr := &C.PangoAttrInt(attr)
-									if int_attr.value != 0 {
-										has_strikethrough = true
-									}
-								} else if attr_type == .pango_attr_overline {
-									int_attr := &C.PangoAttrInt(attr)
-									if int_attr.value != int(PangoOverline.pango_overline_none) {
-										has_overline = true
-									}
-								}
-							}
-							curr_attr_node = curr_attr_node.next
-						}
+				if attr_type == .pango_attr_foreground {
+					color_attr := &C.PangoAttrColor(attr)
+					attrs.color = gg.Color{
+						r: u8(color_attr.color.red >> 8)
+						g: u8(color_attr.color.green >> 8)
+						b: u8(color_attr.color.blue >> 8)
+						a: 255
 					}
-
-					// Get Font Metrics for decoration rendering
-					mut und_pos := 0.0
-					mut und_thick := 0.0
-					mut strike_pos := 0.0
-					mut strike_thick := 0.0
-					mut over_pos := 0.0
-					mut over_thick := 0.0
-
-					if has_underline || has_strikethrough || has_overline {
-						metrics := C.pango_font_get_metrics(pango_font, pango_item.analysis.language)
-						if metrics != unsafe { nil } {
-							if has_underline {
-								val_pos := C.pango_font_metrics_get_underline_position(metrics)
-								val_thick := C.pango_font_metrics_get_underline_thickness(metrics)
-								und_pos = f64(val_pos) / f64(pango_scale)
-								und_thick = f64(val_thick) / f64(pango_scale)
-								// Ensure visible thickness
-								if und_thick < 1.0 {
-									und_thick = 1.0
-								}
-
-								// Fallback: Force a minimum gap if position is too close to baseline
-								if und_pos < und_thick {
-									und_pos = und_thick + 2.0
-								}
-							}
-							if has_strikethrough {
-								val_pos := C.pango_font_metrics_get_strikethrough_position(metrics)
-								val_thick := C.pango_font_metrics_get_strikethrough_thickness(metrics)
-								strike_pos = f64(val_pos) / f64(pango_scale)
-								strike_thick = f64(val_thick) / f64(pango_scale)
-								if strike_thick < 1.0 {
-									strike_thick = 1.0
-								}
-							}
-							if has_overline {
-								// Fallback: Use ascent for position and underline thickness for thickness
-								// as native overline metrics might be missing in older Pango versions.
-								val_ascent := C.pango_font_metrics_get_ascent(metrics)
-								val_thick := C.pango_font_metrics_get_underline_thickness(metrics)
-								// Reduce by a small amount (e.g. 2 pixels) so it's not glued to the very top
-								over_pos = (f64(val_ascent) / f64(pango_scale)) - 3.0
-								over_thick = f64(val_thick) / f64(pango_scale)
-								if over_thick < 1.0 {
-									over_thick = 1.0
-								}
-							}
-							C.pango_font_metrics_unref(metrics)
-						}
+				} else if attr_type == .pango_attr_background {
+					color_attr := &C.PangoAttrColor(attr)
+					attrs.has_bg_color = true
+					attrs.bg_color = gg.Color{
+						r: u8(color_attr.color.red >> 8)
+						g: u8(color_attr.color.green >> 8)
+						b: u8(color_attr.color.blue >> 8)
+						a: 255
 					}
-
-					// Get logical extents for ascent/descent (used for background rect)
-					// run_y is baseline.
-					// logical_rect tells us the design height.
-					// pango_layout_iter_get_run_extents gives logical_rect relative to layout top.
-					// We need ascent/descent relative to baseline.
-
-					// Get run extents (for X position)
-					logical_rect := C.PangoRectangle{}
-					C.pango_layout_iter_get_run_extents(iter, unsafe { nil }, &logical_rect)
-					run_x := f64(logical_rect.x) / f64(pango_scale)
-					// run_y is baseline.
-					// logical_rect tells us the design height.
-					// pango_layout_iter_get_run_extents gives logical_rect relative to layout top.
-					// We need ascent/descent relative to baseline.
-
-					// Re-fetch baseline (iter-based) in Pango units
-					baseline_pango := C.pango_layout_iter_get_baseline(iter)
-					ascent_pango := baseline_pango - logical_rect.y
-					descent_pango := (logical_rect.y + logical_rect.height) - baseline_pango
-
-					run_ascent := f64(ascent_pango) / f64(pango_scale)
-					run_descent := f64(descent_pango) / f64(pango_scale)
-
-					// Get baseline (for Y position) - this is absolute Y within layout of the baseline
-					baseline := C.pango_layout_iter_get_baseline(iter)
-					run_y := f64(baseline) / f64(pango_scale)
-
-					// Extract glyphs
-					glyph_string := run.glyphs
-					num_glyphs := glyph_string.num_glyphs
-					mut glyphs := []Glyph{cap: num_glyphs}
-					mut width := f64(0)
-
-					// Iterate over C array of PangoGlyphInfo
-					infos := glyph_string.glyphs
-
-					for i in 0 .. num_glyphs {
-						unsafe {
-							info := infos[i]
-
-							// Pango uses PANGO_SCALE = 1024. So dividing by 1024.0 gives pixels.
-							x_off := f64(info.geometry.x_offset) / f64(pango_scale)
-							y_off := f64(info.geometry.y_offset) / f64(pango_scale)
-							x_adv := f64(info.geometry.width) / f64(pango_scale)
-							y_adv := 0.0 // Horizontal text assumption for now
-
-							glyphs << Glyph{
-								index:     info.glyph
-								x_offset:  x_off
-								y_offset:  y_off
-								x_advance: x_adv
-								y_advance: y_adv
-								codepoint: 0
-							}
-							width += x_adv
-						}
+				} else if attr_type == .pango_attr_underline {
+					int_attr := &C.PangoAttrInt(attr)
+					if int_attr.value != int(PangoUnderline.pango_underline_none) {
+						attrs.has_underline = true
 					}
-
-					// Get sub-text for this item
-					start_index := pango_item.offset
-					length := pango_item.length
-
-					// // text is standard string (byte buffer). offset/length are bytes.
-					run_str := unsafe { (text.str + start_index).vstring_with_len(length) }
-
-					items << Item{
-						run_text:                run_str
-						ft_face:                 ft_face
-						glyphs:                  glyphs
-						width:                   width
-						x:                       run_x
-						y:                       run_y
-						color:                   item_color
-						has_underline:           has_underline
-						has_strikethrough:       has_strikethrough
-						underline_offset:        und_pos
-						underline_thickness:     und_thick
-						strikethrough_offset:    strike_pos
-						strikethrough_thickness: strike_thick
-						has_overline:            has_overline
-						overline_offset:         over_pos
-						overline_thickness:      over_thick
-						has_bg_color:            has_bg_color
-						bg_color:                item_bg_color
-						ascent:                  run_ascent
-						descent:                 run_descent
+				} else if attr_type == .pango_attr_strikethrough {
+					int_attr := &C.PangoAttrInt(attr)
+					if int_attr.value != 0 {
+						attrs.has_strikethrough = true
+					}
+				} else if attr_type == .pango_attr_overline {
+					int_attr := &C.PangoAttrInt(attr)
+					if int_attr.value != int(PangoOverline.pango_overline_none) {
+						attrs.has_overline = true
 					}
 				}
 			}
+			curr_attr_node = curr_attr_node.next
 		}
+	}
+	return attrs
+}
 
-		if !C.pango_layout_iter_next_run(iter) {
-			break
+struct RunMetrics {
+pub mut:
+	und_pos      f64
+	und_thick    f64
+	strike_pos   f64
+	strike_thick f64
+	over_pos     f64
+	over_thick   f64
+}
+
+// get_run_metrics fetches font metrics (position and thickness) for
+// the active decorations (underline, strikethrough, overline) using Pango's font API.
+fn get_run_metrics(pango_font &C.PangoFont, language &C.PangoLanguage, attrs RunAttributes) RunMetrics {
+	mut m := RunMetrics{}
+	if attrs.has_underline || attrs.has_strikethrough || attrs.has_overline {
+		metrics := C.pango_font_get_metrics(pango_font, language)
+		if metrics != unsafe { nil } {
+			if attrs.has_underline {
+				val_pos := C.pango_font_metrics_get_underline_position(metrics)
+				val_thick := C.pango_font_metrics_get_underline_thickness(metrics)
+				m.und_pos = f64(val_pos) / f64(pango_scale)
+				m.und_thick = f64(val_thick) / f64(pango_scale)
+				if m.und_thick < 1.0 {
+					m.und_thick = 1.0
+				}
+				if m.und_pos < m.und_thick {
+					m.und_pos = m.und_thick + 2.0
+				}
+			}
+			if attrs.has_strikethrough {
+				val_pos := C.pango_font_metrics_get_strikethrough_position(metrics)
+				val_thick := C.pango_font_metrics_get_strikethrough_thickness(metrics)
+				m.strike_pos = f64(val_pos) / f64(pango_scale)
+				m.strike_thick = f64(val_thick) / f64(pango_scale)
+				if m.strike_thick < 1.0 {
+					m.strike_thick = 1.0
+				}
+			}
+			if attrs.has_overline {
+				val_ascent := C.pango_font_metrics_get_ascent(metrics)
+				val_thick := C.pango_font_metrics_get_underline_thickness(metrics)
+				m.over_pos = (f64(val_ascent) / f64(pango_scale)) - 3.0
+				m.over_thick = f64(val_thick) / f64(pango_scale)
+				if m.over_thick < 1.0 {
+					m.over_thick = 1.0
+				}
+			}
+			C.pango_font_metrics_unref(metrics)
+		}
+	}
+	return m
+}
+
+// process_run takes a single Pango glyph run and converts it into a V `Item`.
+// It handles attribute parsing, metric calculation, and glyph extraction.
+fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item {
+	pango_item := run.item
+	pango_font := pango_item.analysis.font
+	if pango_font == unsafe { nil } {
+		return Item{
+			ft_face: unsafe { nil }
 		}
 	}
 
-	// Bake Character Rectangles for Hit Testing
-	//
-	// Strategy:
-	// Pango provides a function `pango_layout_index_to_pos` which gives the logical rectangle for a byte index.
-	// We iterate through the string and query this for every character start.
-	//
-	// Note on RTL (Right-to-Left) Text:
-	// Pango often returns negative widths for RTL characters to indicate direction.
-	// E.g., x=50, width=-10 implies the range [40, 50].
-	// Our `hit_test` logic expects standard normalized rectangles (x, y, w>0, h>0).
-	// We normalize these values here so the runtime `hit_test` can remain simple.
-	mut char_rects := []CharRect{}
+	ft_face := C.pango_ft2_font_get_face(pango_font)
+	if ft_face == unsafe { nil } {
+		return Item{
+			ft_face: unsafe { nil }
+		}
+	}
 
-	// Iterate by rune to get valid start indices for each character
-	// Pango expects byte indices. We assume `layout_text` creates a 1:1 mapping between
-	// source characters and logical positions (ligatures share a box usually).
+	attrs := parse_run_attributes(pango_item)
+	metrics := get_run_metrics(pango_font, pango_item.analysis.language, attrs)
+
+	// Get logical extents for ascent/descent (used for background rect)
+	logical_rect := C.PangoRectangle{}
+	// We need ascent/descent relative to baseline.
+	// run_x and run_y are logical POSITIONS (y is baseline)
+	// logical_rect from get_run_extents is relative to layout origin (top-left)
+	C.pango_layout_iter_get_run_extents(iter, unsafe { nil }, &logical_rect)
+
+	run_x := f64(logical_rect.x) / f64(pango_scale)
+
+	baseline_pango := C.pango_layout_iter_get_baseline(iter)
+	ascent_pango := baseline_pango - logical_rect.y
+	descent_pango := (logical_rect.y + logical_rect.height) - baseline_pango
+
+	run_ascent := f64(ascent_pango) / f64(pango_scale)
+	run_descent := f64(descent_pango) / f64(pango_scale)
+	run_y := f64(baseline_pango) / f64(pango_scale)
+
+	// Extract glyphs
+	glyph_string := run.glyphs
+	num_glyphs := glyph_string.num_glyphs
+	mut glyphs := []Glyph{cap: num_glyphs}
+	mut width := f64(0)
+	infos := glyph_string.glyphs
+
+	for i in 0 .. num_glyphs {
+		unsafe {
+			info := infos[i]
+			x_off := f64(info.geometry.x_offset) / f64(pango_scale)
+			y_off := f64(info.geometry.y_offset) / f64(pango_scale)
+			x_adv := f64(info.geometry.width) / f64(pango_scale)
+			y_adv := 0.0
+
+			glyphs << Glyph{
+				index:     info.glyph
+				x_offset:  x_off
+				y_offset:  y_off
+				x_advance: x_adv
+				y_advance: y_adv
+				codepoint: 0
+			}
+			width += x_adv
+		}
+	}
+
+	// Get sub-text
+	start_index := pango_item.offset
+	length := pango_item.length
+	run_str := unsafe { (text.str + start_index).vstring_with_len(length) }
+
+	return Item{
+		run_text:                run_str
+		ft_face:                 ft_face
+		glyphs:                  glyphs
+		width:                   width
+		x:                       run_x
+		y:                       run_y
+		color:                   attrs.color
+		has_underline:           attrs.has_underline
+		has_strikethrough:       attrs.has_strikethrough
+		underline_offset:        metrics.und_pos
+		underline_thickness:     metrics.und_thick
+		strikethrough_offset:    metrics.strike_pos
+		strikethrough_thickness: metrics.strike_thick
+		has_overline:            attrs.has_overline
+		overline_offset:         metrics.over_pos
+		overline_thickness:      metrics.over_thick
+		has_bg_color:            attrs.has_bg_color
+		bg_color:                attrs.bg_color
+		ascent:                  run_ascent
+		descent:                 run_descent
+	}
+}
+
+// bake_hit_test_rects iterates through the text and generates bounding boxes
+// for every character to enable efficient hit testing later.
+fn bake_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
+	mut char_rects := []CharRect{}
 	mut i := 0
 	for i < text.len {
 		pos := C.PangoRectangle{}
 		C.pango_layout_index_to_pos(layout, i, &pos)
 
-		// Check for RTL rectangles (negative width) or height
 		mut final_x := f32(pos.x) / f32(pango_scale)
 		mut final_y := f32(pos.y) / f32(pango_scale)
 		mut final_w := f32(pos.width) / f32(pango_scale)
@@ -381,7 +400,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 			index: i
 		}
 
-		// Iterate runes manually to skip intermediate bytes
+		// Iterate runes manually
 		mut step := 1
 		b := text[i]
 		if b >= 0xF0 {
@@ -393,11 +412,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		}
 		i += step
 	}
-
-	return Layout{
-		items:      items
-		char_rects: char_rects
-	}
+	return char_rects
 }
 
 // hit_test returns the byte index of the character at (x, y) relative to the layout origin.

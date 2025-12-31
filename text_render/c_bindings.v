@@ -235,6 +235,18 @@ pub:
 	glyphs &C.PangoGlyphString
 }
 
+@[typedef]
+pub struct C.PangoLanguage {}
+
+// PangoLayoutRun is a typedef for PangoGlyphItem in C.
+// We define it here so V knows about C.PangoLayoutRun
+@[typedef]
+pub struct C.PangoLayoutRun {
+pub:
+	item   &C.PangoItem
+	glyphs &C.PangoGlyphString
+}
+
 // GLib Lists
 @[typedef]
 pub struct C.GSList {
