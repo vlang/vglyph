@@ -6,6 +6,15 @@ pub struct Context {
 	pango_context  &C.PangoContext
 }
 
+// new_context initializes the global Pango and FreeType environment.
+//
+// Operations:
+// 1. Boots FreeType.
+// 2. Creates a Pango Font Map (based on FreeType/FontConfig).
+// 3. Creates a root Pango Context.
+//
+// This context should be kept alive for the duration of the application.
+// Passing this context to `layout_text` generates layouts that share the same font cache.
 pub fn new_context() !&Context {
 	// Initialize pointer to null
 	mut ft_lib := &C.FT_LibraryRec(unsafe { nil })

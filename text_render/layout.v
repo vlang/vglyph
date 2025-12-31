@@ -44,6 +44,23 @@ pub:
 	use_markup bool
 }
 
+// layout_text performs the heavy lifting of shaping, wrapping, and arranging text using Pango.
+//
+// Algorithm Overview:
+// 1. Creates a transient `PangoLayout` object which acts as the high-level representation of the paragraph.
+// 2. Applies configuration: Width (for wrapping), Alignment, Font, and Markup.
+// 3. Iterates through the layout results using `PangoLayoutIter` to decompose the text into visual "Run"s.
+//    - A "Run" is a sequence of glyphs that share the same font, direction, and attributes.
+// 4. Extracts detailed glyph info (index, position) from Pango and converts C structs to pure V `Item`s.
+// 5. "Bakes" hit-testing data by querying the bounding box of every character index.
+//
+// Trade-offs:
+// - **Performance**: This function does meaningful work (shaping is expensive). It should be called only when
+//   text changes, not every frame. The result is a `Layout` struct that is cheap to draw repeatedly.
+// - **Memory**: We duplicate some data (glyph indices, positions) into V structs to decouple life-cycle management
+//   from Pango's C memory. This simplifies the API at the cost of slight memory overhead.
+// - **Color**: We manually scrape Pango attributes to find colors. Pango doesn't apply colors to glyphs directly
+//   but attaches them as metadata. We map these to `gg.Color` for the renderer to use during tinting.
 pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	if text.len == 0 {
 		return Layout{}
@@ -191,9 +208,21 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	}
 
 	// Bake Character Rectangles for Hit Testing
+	//
+	// Strategy:
+	// Pango provides a function `pango_layout_index_to_pos` which gives the logical rectangle for a byte index.
+	// We iterate through the string and query this for every character start.
+	//
+	// Note on RTL (Right-to-Left) Text:
+	// Pango often returns negative widths for RTL characters to indicate direction.
+	// E.g., x=50, width=-10 implies the range [40, 50].
+	// Our `hit_test` logic expects standard normalized rectangles (x, y, w>0, h>0).
+	// We normalize these values here so the runtime `hit_test` can remain simple.
 	mut char_rects := []CharRect{}
+	
 	// Iterate by rune to get valid start indices for each character
-	// Pango expects byte indices
+	// Pango expects byte indices. We assume `layout_text` creates a 1:1 mapping between
+	// source characters and logical positions (ligatures share a box usually).
 	mut i := 0
 	for i < text.len {
 		pos := C.PangoRectangle{}
@@ -241,6 +270,16 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 
 // hit_test returns the byte index of the character at (x, y) relative to the layout origin.
 // Returns -1 if no character is found close enough.
+//
+// Algorithm:
+// Performs a simple linear search (O(N)) over the baked character rectangles.
+//
+// Trade-offs:
+// - **Efficiency**: For typical paragraphs (N < 1000), linear search is cache-friendly and faster than overhead
+//   of building a QuadTree. For extremely large texts (e.g., entire documents laid out at once),
+//   this standard vector linear scan might become noticeable, but usually mouse events are sparse.
+// - **Accuracy**: Returns the *first* matching index. In cases of overlapping characters (rendering artifacts),
+//   order matters. We search in logical order.
 pub fn (l Layout) hit_test(x f32, y f32) int {
 	// Simple linear search.
 	// We could optimize with spatial partitioning if needed.

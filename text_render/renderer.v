@@ -27,7 +27,12 @@ pub fn new_renderer(mut ctx gg.Context) &Renderer {
 }
 
 // commit updates the GPU texture if the atlas has changed.
-// This must be called exactly once per frame, ideally after all draw calls.
+// This must be called exactly once per frame, ideally after all draw calls are submitted for that frame.
+//
+// Reason:
+// Sokol (and many Graphics APIs) prefer or enforce single-update-per-frame rules for dynamic textures
+// to simplify resource fencing. Calling this multiple times might overwrite the buffer or cause stalls.
+// Only uploads if `renderer.atlas.dirty` is true to save bandwidth.
 pub fn (mut renderer Renderer) commit() {
 	if renderer.atlas.dirty {
 		renderer.atlas.image.update_pixel_data(renderer.atlas.image.data)
@@ -35,6 +40,18 @@ pub fn (mut renderer Renderer) commit() {
 	}
 }
 
+// draw_layout renders the pre-calculated Layout object to the screen at position (x, y).
+//
+// Algorithm:
+// 1. Iterates through the V `Layout` items.
+// 2. For each glyph, checks if it is already in the `GlyphAtlas` cache.
+// 3. If missing, loads it from FreeType on-the-fly (caching it for future frames).
+// 4. Calculates the final screen position using the Layout position + Glyph offset + FreeType bearing.
+// 5. Queues a textured quad draw call using `gg`.
+//
+// Performance Note:
+// - Draw calls are batched by `gg`, but we switch textures if using multiple atlases (current implementation uses one).
+// - Glyph loading happens lazily. First frame with new text might have a cpu spike (rasterization).
 pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 	// Layout is already laid out. All we need is to draw it at (x, y).
 
@@ -101,6 +118,20 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 	}
 }
 
+// max_visual_height calculates the total vertical space consumed by the rendered glyphs.
+//
+// Difference from Pango Height:
+// Pango provides a "logical" height for the layout, which is essentially `line_height * num_lines`.
+// This function, however, inspects the actual "Ink" extents of the glyphs.
+//
+// Use Code:
+// - Call this when you need to stack layouts tightly or ensure no overlap.
+// - Emojis or script fonts may extend significantly above or below the logical line height.
+//   This function captures that true visual bottom.
+//
+// Algorithm:
+// Iterates through all glyphs in the layout, computes their bottom Y coordinate (`baseline + y_bearing + height`),
+// and returns the maximum value found.
 pub fn (mut renderer Renderer) max_visual_height(layout Layout) f32 {
 	// Pango sets layout height based on content.
 	// But we can also compute the bounding box of glyphs to be sure.
