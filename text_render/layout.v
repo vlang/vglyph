@@ -43,7 +43,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	}
 
 	layout := C.pango_layout_new(ctx.pango_context)
-	if voidptr(layout) == unsafe { nil } {
+	if layout == unsafe { nil } {
 		return error('Failed to create Pango Layout')
 	}
 	defer { C.g_object_unref(layout) }
@@ -62,13 +62,13 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	C.pango_layout_set_alignment(layout, cfg.align)
 
 	desc := C.pango_font_description_from_string(cfg.font_name.str)
-	if voidptr(desc) != unsafe { nil } {
+	if desc != unsafe { nil } {
 		C.pango_layout_set_font_description(layout, desc)
 		C.pango_font_description_free(desc)
 	}
 
 	iter := C.pango_layout_get_iter(layout)
-	if voidptr(iter) == unsafe { nil } {
+	if iter == unsafe { nil } {
 		return error('Failed to create Pango Layout Iterator')
 	}
 	defer { C.pango_layout_iter_free(iter) }
@@ -77,15 +77,15 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 
 	for {
 		run := C.pango_layout_iter_get_run_readonly(iter)
-		if voidptr(run) != unsafe { nil } {
+		if run != unsafe { nil } {
 			pango_item := run.item
 			pango_font := pango_item.analysis.font
 
 			// Critical: Get FT_Face from PangoFont
 			// Pango might return NULL font for generic fallback if not found?
-			if voidptr(pango_font) != unsafe { nil } {
+			if pango_font != unsafe { nil } {
 				ft_face := C.pango_ft2_font_get_face(pango_font)
-				if voidptr(ft_face) != unsafe { nil } {
+				if ft_face != unsafe { nil } {
 					// Get color attributes
 					// Default to white
 					mut item_color := gg.Color{255, 255, 255, 255}
@@ -93,19 +93,15 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 					// Iterate GSList of attributes
 					mut curr_attr_node := unsafe { &C.GSList(pango_item.analysis.extra_attrs) }
 					// extra_attrs allows NULL if list is empty
-					if voidptr(curr_attr_node) != unsafe { nil } {
-						unsafe {
-							for {
-								if voidptr(curr_attr_node) == nil {
+					if curr_attr_node != unsafe { nil } {
+						for {
+							unsafe {
+								if curr_attr_node == nil {
 									break
 								}
 
 								attr := &C.PangoAttribute(curr_attr_node.data)
-
-								// Access the first field 'type' of PangoAttrClass via unsafe cast
-								// because 'type' is a reserved keyword in V.
-								// struct PangoAttrClass { PangoAttrType type; ... }
-								attr_type := *(&PangoAttrType(attr.klass))
+								attr_type := attr.klass.type
 
 								if attr_type == .pango_attr_foreground {
 									color_attr := &C.PangoAttrColor(attr)
@@ -117,9 +113,8 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 										a: 255
 									}
 								}
-
-								curr_attr_node = curr_attr_node.next
 							}
+							curr_attr_node = curr_attr_node.next
 						}
 					}
 
@@ -138,11 +133,11 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 					mut glyphs := []Glyph{cap: num_glyphs}
 					mut width := f64(0)
 
-					unsafe {
-						// Iterate over C array of PangoGlyphInfo
-						infos := glyph_string.glyphs
+					// Iterate over C array of PangoGlyphInfo
+					infos := glyph_string.glyphs
 
-						for i in 0 .. num_glyphs {
+					for i in 0 .. num_glyphs {
+						unsafe {
 							info := infos[i]
 
 							// Pango uses PANGO_SCALE = 1024. So dividing by 1024.0 gives pixels.
@@ -162,10 +157,12 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 							width += x_adv
 						}
 					}
+
 					// Get sub-text for this item
 					start_index := pango_item.offset
 					length := pango_item.length
-					// text is standard string (byte buffer). offset/length are bytes.
+
+					// // text is standard string (byte buffer). offset/length are bytes.
 					run_str := unsafe { (text.str + start_index).vstring_with_len(length) }
 
 					items << Item{

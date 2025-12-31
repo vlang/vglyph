@@ -271,6 +271,8 @@ pub:
 
 @[typedef]
 pub struct C.PangoAttrClass {
+pub:
+	type PangoAttrType
 }
 
 @[typedef]
