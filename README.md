@@ -6,6 +6,25 @@ A high-performance, feature-rich text rendering engine for the V programming lan
 
 This library provides production-grade text layout capabilities, including bidirectional text support (Arabic/Hebrew), complex script shaping, text wrapping, rich text markup, and sub-pixel accurate rendering, while maintaining a pure V-friendly API.
 
+## Prerequisites
+
+This library relies on **Pango** and **FreeType**. You must have these installed on your system.
+
+### macOS (Homebrew)
+```bash
+brew install pango freetype pkg-config
+```
+
+### Linux (Debian/Ubuntu)
+```bash
+sudo apt-get install libpango1.0-dev libfreetype6-dev pkg-config
+```
+
+### Linux (Fedora)
+```bash
+sudo dnf install pango-devel freetype-devel pkgconf-pkg-config
+```
+
 ## Architecture
 
 The system is designed to decouple **Text Layout** from **Text Rendering**. This separation allows for efficient hit-testing and layout calculations without needing an active graphics context, and batched rendering for high performance.
