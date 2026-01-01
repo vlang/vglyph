@@ -30,8 +30,8 @@ pub fn new_text_system(mut gg_ctx gg.Context) !&TextSystem {
 	}
 }
 
-// draw_text renders text at the specified coordinates.
-// It manages the layout caching internally.
+// draw_text renders the given text string at coordinates (x, y) using the provided configuration.
+// It automatically handles layout caching to optimize performance for repeated calls.
 pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) ! {
 	key := ts.get_cache_key(text, cfg)
 	ts.prune_cache()
@@ -53,7 +53,8 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 	}
 }
 
-// text_width returns the pixel width of the rendered text.
+// text_width calculates and returns the width (in pixels) of the text if it were rendered with the given config.
+// This is useful for layout calculations before rendering.
 pub fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32 {
 	// For width we need the layout.
 	// Difficult to guess without Pango shaping it.
@@ -75,7 +76,8 @@ pub fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32 {
 	return ts.get_layout_width(layout)
 }
 
-// text_height returns the pixel height (visual) of the rendered text.
+// text_height calculates and returns the visual height (in pixels) of the text.
+// This corresponds to the vertical space the text would occupy.
 pub fn (mut ts TextSystem) text_height(text string, cfg TextConfig) !f32 {
 	key := ts.get_cache_key(text, cfg)
 

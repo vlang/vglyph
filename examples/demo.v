@@ -67,7 +67,7 @@ fn init(mut app App) {
 	app.layouts << app.tr_ctx.layout_text(long_text, text_render.TextConfig{
 		font_name: 'Sans 20'
 		width:     400
-		align:     .pango_align_center
+		align:     .center
 	}) or { panic(err.msg()) }
 
 	// Demonstrate Rich Text (Markup)
@@ -78,7 +78,7 @@ fn init(mut app App) {
 		font_name:  'Sans 30'
 		use_markup: true
 		width:      800
-		align:      .pango_align_left
+		align:      .left
 	}) or { panic(err.msg()) }
 
 	app.renderer = text_render.new_renderer(mut app.ctx)

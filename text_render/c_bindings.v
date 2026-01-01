@@ -335,6 +335,7 @@ fn C.pango_layout_set_text(&C.PangoLayout, &char, int)
 fn C.pango_layout_set_markup(&C.PangoLayout, &char, int)
 fn C.pango_layout_set_font_description(&C.PangoLayout, &C.PangoFontDescription)
 fn C.pango_layout_get_iter(&C.PangoLayout) &C.PangoLayoutIter
+fn C.pango_layout_get_font_description(&C.PangoLayout) &C.PangoFontDescription
 fn C.pango_layout_get_extents(&C.PangoLayout, &C.PangoRectangle, &C.PangoRectangle)
 fn C.pango_layout_index_to_pos(&C.PangoLayout, int, &C.PangoRectangle)
 
@@ -350,6 +351,11 @@ fn C.pango_font_description_free(&C.PangoFontDescription)
 fn C.pango_font_description_set_family(&C.PangoFontDescription, &char)
 fn C.pango_font_description_set_size(&C.PangoFontDescription, int) // size in Pango units
 fn C.pango_font_description_set_absolute_size(&C.PangoFontDescription, f64)
+fn C.pango_font_description_get_size(&C.PangoFontDescription) int
+fn C.pango_font_description_get_size_is_absolute(&C.PangoFontDescription) bool
+fn C.pango_layout_get_context(&C.PangoLayout) &C.PangoContext
+fn C.pango_context_get_metrics(&C.PangoContext, &C.PangoFontDescription, &C.PangoLanguage) &C.PangoFontMetrics
+fn C.pango_font_metrics_get_approximate_char_width(&C.PangoFontMetrics) int
 
 // Pango Font Metrics
 fn C.pango_font_get_metrics(&C.PangoFont, voidptr) &C.PangoFontMetrics

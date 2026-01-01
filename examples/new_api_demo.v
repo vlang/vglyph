@@ -50,8 +50,8 @@ fn frame(mut app App) {
 	wrap_cfg := text_render.TextConfig{
 		font_name: 'Serif 20'
 		width:     300
-		wrap:      .pango_wrap_word
-		align:     .pango_align_left
+		wrap:      .word
+		align:     .left
 	}
 
 	app.ts.draw_text(50, 100, long_text, wrap_cfg) or { panic(err) }

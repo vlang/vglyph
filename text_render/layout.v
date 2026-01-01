@@ -49,13 +49,28 @@ pub:
 	codepoint u32 // Optional, might be 0 if not easily tracking back
 }
 
+// Alignment specifies the horizontal alignment of the text within its layout box.
+pub enum Alignment {
+	left   // left aligns the text to the left.
+	center // center aligns the text to the center.
+	right  // right aligns the text to the right.
+}
+
+// WrapMode defines how text should wrap when it exceeds the maximum width.
+pub enum WrapMode {
+	word      // word wraps lines at word boundaries (e.g. spaces).
+	char      // char wraps at character boundaries.
+	word_char // word_char wraps at word boundaries, but if too long to fit, falls back to character wrapping.
+}
+
+// TextConfig holds configuration for text layout and rendering.
 pub struct TextConfig {
 pub:
-	font_name  string
-	width      int            = -1 // in pixels, -1 or 0 for no limit
-	align      PangoAlignment = .pango_align_left
-	wrap       PangoWrapMode  = .pango_wrap_word
-	use_markup bool
+	font_name  string // font_name is the family name and size, e.g. "Sans 20".
+	width      int       = -1    // width is the wrapping width in pixels. Set to -1 or 0 for no wrapping.
+	align      Alignment = .left // align controls the horizontal alignment of the text (left, center, right).
+	wrap       WrapMode  = .word // wrap controls how text lines are broken (word, char, etc.).
+	use_markup bool // use_markup enables Pango markup syntax (e.g. <b>bold</b>, <i>italic</i>, <span foreground="red">color</span>).
 }
 
 // layout_text performs the heavy lifting of shaping, wrapping, and arranging text using Pango.
@@ -108,7 +123,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		}
 	}
 
-	char_rects := bake_hit_test_rects(layout, text)
+	char_rects := compute_hit_test_rects(layout, text)
 
 	return Layout{
 		items:      items
@@ -135,9 +150,19 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 	// Apply layout configuration
 	if cfg.width > 0 {
 		C.pango_layout_set_width(layout, cfg.width * pango_scale)
-		C.pango_layout_set_wrap(layout, cfg.wrap)
+		pango_wrap := match cfg.wrap {
+			.word { PangoWrapMode.pango_wrap_word }
+			.char { PangoWrapMode.pango_wrap_char }
+			.word_char { PangoWrapMode.pango_wrap_word_char }
+		}
+		C.pango_layout_set_wrap(layout, pango_wrap)
 	}
-	C.pango_layout_set_alignment(layout, cfg.align)
+	pango_align := match cfg.align {
+		.left { PangoAlignment.pango_align_left }
+		.center { PangoAlignment.pango_align_center }
+		.right { PangoAlignment.pango_align_right }
+	}
+	C.pango_layout_set_alignment(layout, pango_align)
 
 	desc := C.pango_font_description_from_string(cfg.font_name.str)
 	if desc != unsafe { nil } {
@@ -344,11 +369,21 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 	}
 }
 
-// bake_hit_test_rects iterates through the text and generates bounding boxes
+// compute_hit_test_rects iterates through the text and generates bounding boxes
 // for every character to enable efficient hit testing later.
-fn bake_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
+fn compute_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
 	mut char_rects := []CharRect{}
 	mut i := 0
+	// Calculate fallback width for zero-width spaces
+	font_desc := C.pango_layout_get_font_description(layout)
+	mut fallback_width := f32(0)
+	if font_desc != unsafe { nil } {
+		// Size is in Pango units (1/1024)
+		size_pango := C.pango_font_description_get_size(font_desc)
+		// Approx char width is often 1/2 em or similar. Using a safe 1/3 em for space.
+		fallback_width = f32(size_pango) / f32(pango_scale) / 3.0
+	}
+
 	for i < text.len {
 		pos := C.PangoRectangle{}
 		C.pango_layout_index_to_pos(layout, i, &pos)
@@ -365,6 +400,11 @@ fn bake_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
 		if final_h < 0 {
 			final_y += final_h
 			final_h = -final_h
+		}
+
+		// Fix zero-width spaces
+		if final_w == 0 && text[i] == 32 {
+			final_w = fallback_width
 		}
 
 		char_rects << CharRect{
