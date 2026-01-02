@@ -23,7 +23,7 @@ fn main() {
 	app.ctx = gg.new_context(
 		width:         900
 		height:        600
-		bg_color:      gg.gray
+		bg_color:      gg.light_gray
 		create_window: true
 		window_title:  'V Text Render Atlas Demo'
 		frame_fn:      frame
@@ -105,7 +105,7 @@ fn frame(mut app App) {
 					if cr.index == hit_index {
 						// Draw cursor rect
 						app.ctx.draw_rect_empty(10 + cr.rect.x, y + cr.rect.y, cr.rect.width,
-							cr.rect.height, gg.yellow)
+							cr.rect.height, gg.blue)
 						break
 					}
 				}

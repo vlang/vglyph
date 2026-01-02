@@ -149,8 +149,84 @@ pub struct C.PangoContext {}
 @[typedef]
 pub struct C.PangoLayout {}
 
+// Pango Font Description Enums
 @[typedef]
-pub struct C.PangoFontDescription {}
+pub enum PangoStyle {
+	pango_style_normal  = 0
+	pango_style_oblique = 1
+	pango_style_italic  = 2
+}
+
+pub enum PangoVariant {
+	pango_variant_normal          = 0
+	pango_variant_small_caps      = 1
+	pango_variant_all_small_caps  = 2
+	pango_variant_petite_caps     = 3
+	pango_variant_all_petite_caps = 4
+	pango_variant_unicase         = 5
+	pango_variant_title_caps      = 6
+}
+
+pub enum PangoWeight {
+	pango_weight_thin       = 100
+	pango_weight_ultralight = 200
+	pango_weight_light      = 300
+	pango_weight_semilight  = 350
+	pango_weight_book       = 380
+	pango_weight_normal     = 400
+	pango_weight_medium     = 500
+	pango_weight_semibold   = 600
+	pango_weight_bold       = 700
+	pango_weight_ultrabold  = 800
+	pango_weight_heavy      = 900
+	pango_weight_ultraheavy = 1000
+}
+
+pub enum PangoStretch {
+	pango_stretch_ultra_condensed = 0
+	pango_stretch_extra_condensed = 1
+	pango_stretch_condensed       = 2
+	pango_stretch_semi_condensed  = 3
+	pango_stretch_normal          = 4
+	pango_stretch_semi_expanded   = 5
+	pango_stretch_expanded        = 6
+	pango_stretch_extra_expanded  = 7
+	pango_stretch_ultra_expanded  = 8
+}
+
+pub enum PangoGravity {
+	pango_gravity_south = 0
+	pango_gravity_east  = 1
+	pango_gravity_north = 2
+	pango_gravity_west  = 3
+	pango_gravity_auto  = 4
+}
+
+pub enum PangoFontMask {
+	pango_font_mask_family     = 1   // (1 << 0)
+	pango_font_mask_style      = 2   // (1 << 1)
+	pango_font_mask_variant    = 4   // (1 << 2)
+	pango_font_mask_weight     = 8   // (1 << 3)
+	pango_font_mask_stretch    = 16  // (1 << 4)
+	pango_font_mask_size       = 32  // (1 << 5)
+	pango_font_mask_gravity    = 64  // (1 << 6)
+	pango_font_mask_variations = 128 // (1 << 7)
+}
+
+@[typedef]
+pub struct C.PangoFontDescription {
+pub mut:
+	family_name            &char
+	style                  PangoStyle
+	variant                PangoVariant
+	weight                 PangoWeight
+	stretch                PangoStretch
+	gravity                PangoGravity
+	variations             &char
+	mask                   u16 // PangoFontMask
+	static_and_is_abs_size u32 // Bitfields: static_family (1), static_variations (1), size_is_absolute (1)
+	size                   int
+}
 
 @[typedef]
 pub struct C.PangoFontMap {}

@@ -48,7 +48,7 @@ fn frame(mut app App) {
 	// 2. Text with wrapping and measurement
 	long_text := 'This usage pattern is much cleaner. The system handles layout caching internally.'
 	wrap_cfg := text_render.TextConfig{
-		font_name: 'Serif 20'
+		font_name: 'Impact 20'
 		width:     300
 		wrap:      .word
 		align:     .left

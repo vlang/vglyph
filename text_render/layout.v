@@ -66,11 +66,52 @@ pub enum WrapMode {
 // TextConfig holds configuration for text layout and rendering.
 pub struct TextConfig {
 pub:
-	font_name  string // font_name is the family name and size, e.g. "Sans 20".
-	width      int       = -1    // width is the wrapping width in pixels. Set to -1 or 0 for no wrapping.
-	align      Alignment = .left // align controls the horizontal alignment of the text (left, center, right).
-	wrap       WrapMode  = .word // wrap controls how text lines are broken (word, char, etc.).
-	use_markup bool // use_markup enables Pango markup syntax (e.g. <b>bold</b>, <i>italic</i>, <span foreground="red">color</span>).
+	// font_name is a Pango font description string properly formatted as:
+	// "[FAMILY-LIST] [STYLE-OPTIONS] [SIZE] [VARIATIONS] [FEATURES]"
+	//
+	// FAMILY-LIST: Comma-separated list of families (e.g. "Sans, Helvetica, monospace").
+	//
+	// STYLE-OPTIONS: Whitespace-separated list of words from the following categories:
+	//   Styles:   Normal, Roman, Oblique, Italic
+	//   Variants: Small-Caps, All-Small-Caps, Petite-Caps, All-Petite-Caps, Unicase, Title-Caps
+	//   Weights:  Thin, Ultra-Light, Extra-Light, Light, Semi-Light, Demi-Light, Book, Regular,
+	//             Medium, Semi-Bold, Demi-Bold, Bold, Ultra-Bold, Extra-Bold, Heavy, Black,
+	//             Ultra-Black, Extra-Black
+	//   Stretch:  Ultra-Condensed, Extra-Condensed, Condensed, Semi-Condensed, Semi-Expanded,
+	//             Expanded, Extra-Expanded, Ultra-Expanded
+	//   Gravity:  Not-Rotated, South, Upside-Down, North, Rotated-Left, East, Rotated-Right, West
+	//
+	// SIZE: Decimal number for points (e.g. "12"), or with "px" for absolute pixels (e.g. "20px").
+	//
+	// VARIATIONS: Comma-separated list of OpenType axis variations in format "@axis=value"
+	//             (e.g. "@wght=200,wdth=100").
+	//
+	// FEATURES: Comma-separated list of OpenType features in format "@feature=value"
+	//           (e.g. "@liga=0,frac=1").
+	//
+	// Example: "Cantarell Italic Light 15"
+	//
+	// Also see: https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html
+	font_name string
+	width     int       = -1    // width is the wrapping width in pixels. Set to -1 or 0 for no wrapping.
+	align     Alignment = .left // align controls the horizontal alignment of the text (left, center, right).
+	wrap      WrapMode  = .word // wrap controls how text lines are broken (word, char, etc.).
+	// use_markup enables Pango markup syntax.
+	//
+	// Supported tags:
+	//   <b>, <i>, <s>, <u>, <tt>, <sub>, <sup>, <small>, <big>
+	//
+	// The <span> tag supports the following attributes:
+	//   font_family (or face), font_desc, size (e.g. "small", "xx-large", "100"), style,
+	//   weight, variant, stretch, foreground (or color/fgcolor), background (or bgcolor),
+	//   alpha, background_alpha, underline ("none", "single", "double", "low"), underline_color,
+	//   rise (vertical offset), strikethrough ("true"/"false"), strikethrough_color,
+	//   fallback ("true"/"false"), lang, letter_spacing, gravity, gravity_hint.
+	//
+	// Example: <span foreground="blue" size="x-large">Blue Text</span>
+	//
+	// Also see: https://developer.gnome.org/pango/stable/PangoMarkupFormat.html
+	use_markup bool
 }
 
 // layout_text performs the heavy lifting of shaping, wrapping, and arranging text using Pango.
