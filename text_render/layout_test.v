@@ -125,3 +125,32 @@ fn test_layout_markup() {
 	assert item.color.g == 0
 	assert item.color.b == 0
 }
+
+// Test hit test rect
+fn test_hit_test_rect() {
+	mut ctx := new_context()!
+	defer { ctx.free() }
+
+	cfg := TextConfig{
+		font_name: 'Sans 20'
+		width:     -1
+	}
+
+	layout := ctx.layout_text('A', cfg)!
+
+	// Test hit at middle of first char
+	rect := layout.hit_test_rect(5, 5) or {
+		assert false, 'Should have hit'
+		return
+	}
+	
+	// Basic validation that we got a reasonable rect
+	assert rect.width > 0
+	assert rect.height > 0
+
+	// Test miss
+	if _ := layout.hit_test_rect(-10, -10) {
+		assert false, 'Should have missed'
+	}
+}
+

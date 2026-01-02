@@ -527,6 +527,18 @@ fn compute_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
 	return char_rects
 }
 
+// hit_test_rect returns the bounding box of the character at (x, y) relative to the layout origin.
+// Returns none if no character is found close enough.
+pub fn (l Layout) hit_test_rect(x f32, y f32) ?gg.Rect {
+	for cr in l.char_rects {
+		if x >= cr.rect.x && x <= cr.rect.x + cr.rect.width && y >= cr.rect.y
+			&& y <= cr.rect.y + cr.rect.height {
+			return cr.rect
+		}
+	}
+	return none
+}
+
 // hit_test returns the byte index of the character at (x, y) relative to the layout origin.
 // Returns -1 if no character is found close enough.
 //

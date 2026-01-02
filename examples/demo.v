@@ -98,17 +98,11 @@ fn frame(mut app AppDemo) {
 			local_x := app.mouse_x - 10
 			local_y := app.mouse_y - y
 
-			hit_index := layout.hit_test(local_x, local_y)
-			if hit_index != -1 {
-				// Find the rect for this index to draw a cursor
-				for cr in layout.char_rects {
-					if cr.index == hit_index {
-						// Draw cursor rect
-						app.ctx.draw_rect_empty(10 + cr.rect.x, y + cr.rect.y, cr.rect.width,
-							cr.rect.height, gg.white)
-						break
-					}
-				}
+			hit_rect_opt := layout.hit_test_rect(local_x, local_y)
+			if hit_rect := hit_rect_opt {
+				// Draw cursor rect
+				app.ctx.draw_rect_empty(10 + hit_rect.x, y + hit_rect.y, hit_rect.width,
+					hit_rect.height, gg.white)
 			}
 
 			y += app.renderer.max_visual_height(layout) + 20
