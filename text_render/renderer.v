@@ -26,6 +26,15 @@ pub fn new_renderer(mut ctx gg.Context) &Renderer {
 	}
 }
 
+pub fn new_renderer_atlas_size(mut ctx gg.Context, width int, height int) &Renderer {
+	mut atlas := new_glyph_atlas(mut ctx, width, height)
+	return &Renderer{
+		ctx:   ctx
+		atlas: atlas
+		cache: map[u64]CachedGlyph{}
+	}
+}
+
 // commit updates the GPU texture if the atlas has changed.
 // This must be called exactly once per frame, ideally after all draw calls are submitted for that frame.
 //

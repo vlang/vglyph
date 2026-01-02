@@ -30,6 +30,16 @@ pub fn new_text_system(mut gg_ctx gg.Context) !&TextSystem {
 	}
 }
 
+pub fn new_text_system_atlas_size(mut gg_ctx gg.Context, atlas_width int, atlas_height int) !&TextSystem {
+	tr_ctx := new_context()!
+	renderer := new_renderer_atlas_size(mut gg_ctx, atlas_width, atlas_height)
+	return &TextSystem{
+		ctx:      tr_ctx
+		renderer: renderer
+		cache:    map[u64]&CachedLayout{}
+	}
+}
+
 // draw_text renders the given text string at coordinates (x, y) using the provided configuration.
 // It automatically handles layout caching to optimize performance for repeated calls. [TextConfig](#TextConfig)
 pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) ! {
