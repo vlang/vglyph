@@ -33,10 +33,11 @@ pub:
 	strikethrough_thickness f64
 
 	// Background
-	has_bg_color bool
-	bg_color     gg.Color
-	ascent       f64
-	descent      f64
+	has_bg_color       bool
+	bg_color           gg.Color
+	ascent             f64
+	descent            f64
+	use_original_color bool // If true, do not tint the item color (e.g. for Emojis)
 }
 
 pub struct Glyph {
@@ -461,6 +462,7 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 		bg_color:                attrs.bg_color
 		ascent:                  run_ascent
 		descent:                 run_descent
+		use_original_color:      (ft_face.face_flags & ft_face_flag_color) != 0
 	}
 }
 

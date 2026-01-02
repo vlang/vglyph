@@ -9,6 +9,8 @@ module text_render
 // FreeType
 #include "ft_compat.h"
 
+pub const ft_face_flag_color = (1 << 14)
+
 @[typedef]
 pub struct C.FT_LibraryRec {
 }

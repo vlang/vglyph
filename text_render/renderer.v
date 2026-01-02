@@ -113,7 +113,11 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 					height: (cg.v1 - cg.v0) * f32(renderer.atlas.height)
 				}
 
-				c := item.color
+				mut c := item.color
+				if item.use_original_color {
+					c = gg.white
+				}
+
 				renderer.ctx.draw_image_with_config(
 					img:       &renderer.atlas.image
 					part_rect: src
