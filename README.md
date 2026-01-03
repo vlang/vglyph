@@ -5,8 +5,9 @@
 A high-performance, feature-rich text rendering engine for the V programming language, built on top
 of **Pango**, **FreeType**, and **Sokol**.
 
-This library provides production-grade text layout capabilities, including bidirectional text
-support (Arabic/Hebrew), complex script shaping, text wrapping, rich text markup, and sub-pixel
+This library provides production-grade text layout capabilities, including
+bidirectional text support (Arabic/Hebrew), complex script shaping, text
+wrapping, rich text markup, local font loading (TTF/OTF), and sub-pixel
 accurate rendering, while maintaining a pure V-friendly API.
 
 ## Prerequisites
@@ -169,9 +170,31 @@ fn frame(mut app App) {
 		align:     .center
 	}) or { panic(err) }
 
+
 	// Upload texture data at end of frame
 	app.ts.commit()
 }
+```
+
+### Local Fonts & Icon Support
+
+You can load custom font files (TTF/OTF) at runtime using `add_font_file`. This
+is particularly useful for bundling fonts with your application or using icon
+fonts.
+
+**Note:** You must refer to the loaded font by its *Family Name* in
+`TextConfig`, not the filename.
+
+```okfmt
+// 1. Load the font file (e.g. in init)
+// Returns true on success
+app.ts.add_font_file('assets/icons.ttf')
+
+// 2. Use the Family Name (e.g. "Feather")
+// Use unicode escape sequences for icons
+app.ts.draw_text(50, 50, '\uF100', text_render.TextConfig{
+    font_name: 'Feather 24'
+})
 ```
 
 ### Advanced Usage (Manual Layout Management)
