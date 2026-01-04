@@ -17,12 +17,12 @@ pub mut:
 
 pub struct CachedGlyph {
 pub:
-	u0   f32
-	v0   f32
-	u1   f32
-	v1   f32
-	left int
-	top  int
+	x      int
+	y      int
+	width  int
+	height int
+	left   int
+	top    int
 }
 
 fn new_glyph_atlas(mut ctx gg.Context, w int, h int) GlyphAtlas {
@@ -216,26 +216,22 @@ pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) !Cach
 	}
 
 	if atlas.cursor_y + glyph_h > atlas.height {
-		log.error('${@FILE_LINE}: GlyphAtlas full! Increase atlas size.')
-		return error('GlyphAtlas full! Increase atlas size.')
+		// Linear doubling of height
+		new_height := if atlas.height == 0 { 1024 } else { atlas.height * 2 }
+		atlas.grow(new_height)
 	}
 
 	copy_bitmap_to_atlas(mut atlas, bmp, atlas.cursor_x, atlas.cursor_y)
 	atlas.dirty = true
 
 	// Compute UVs
-	u0 := f32(atlas.cursor_x) / f32(atlas.width)
-	v0 := f32(atlas.cursor_y) / f32(atlas.height)
-	u1 := f32(atlas.cursor_x + glyph_w) / f32(atlas.width)
-	v1 := f32(atlas.cursor_y + glyph_h) / f32(atlas.height)
-
 	cached := CachedGlyph{
-		u0:   u0
-		v0:   v0
-		u1:   u1
-		v1:   v1
-		left: left
-		top:  top
+		x:      atlas.cursor_x
+		y:      atlas.cursor_y
+		width:  glyph_w
+		height: glyph_h
+		left:   left
+		top:    top
 	}
 
 	// Advance cursor
@@ -245,6 +241,45 @@ pub fn (mut atlas GlyphAtlas) insert_bitmap(bmp Bitmap, left int, top int) !Cach
 	}
 
 	return cached
+}
+
+pub fn (mut atlas GlyphAtlas) grow(new_height int) {
+	if new_height <= atlas.height {
+		return
+	}
+	log.info('Growing glyph atlas from ${atlas.height} to ${new_height}')
+
+	old_size := atlas.width * atlas.height * 4
+	new_size := atlas.width * new_height * 4
+
+	mut new_data := unsafe { malloc(new_size) }
+
+	// Copy old data
+	unsafe {
+		vmemcpy(new_data, atlas.image.data, old_size)
+		// Zero out the new part (optional, but good for debugging)
+		// Pointer arithmetic must be done carefully
+		dest_ptr := &u8(new_data) + old_size
+		vmemset(dest_ptr, 0, new_size - old_size)
+		free(atlas.image.data)
+	}
+	atlas.image.data = new_data
+	atlas.height = new_height
+	atlas.image.height = new_height
+
+	// Re-create Sokol image with new size
+	// Note: We're replacing the underlying sokol image entirely.
+	// This might be expensive, but it happens rarely.
+	sg.destroy_image(atlas.image.simg)
+
+	desc := sg.ImageDesc{
+		width:        atlas.width
+		height:       new_height
+		pixel_format: .rgba8
+		usage:        .dynamic
+	}
+	atlas.image.simg = sg.make_image(&desc)
+	atlas.dirty = true // Force upload
 }
 
 fn copy_bitmap_to_atlas(mut atlas GlyphAtlas, bmp Bitmap, x int, y int) {

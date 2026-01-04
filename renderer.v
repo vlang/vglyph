@@ -96,11 +96,11 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 			draw_x := cx + f32(glyph.x_offset) + f32(cg.left)
 			draw_y := cy - f32(glyph.y_offset) - f32(cg.top)
 
-			glyph_w := f32((cg.u1 - cg.u0) * f32(renderer.atlas.width))
-			glyph_h := f32((cg.v1 - cg.v0) * f32(renderer.atlas.height))
+			glyph_w := f32(cg.width)
+			glyph_h := f32(cg.height)
 
 			// Draw image from glyph atlas
-			if cg.u0 != cg.u1 && cg.v0 != cg.v1 {
+			if cg.width > 0 && cg.height > 0 {
 				dst := gg.Rect{
 					x:      draw_x
 					y:      draw_y
@@ -108,10 +108,10 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 					height: glyph_h
 				}
 				src := gg.Rect{
-					x:      cg.u0 * f32(renderer.atlas.width)
-					y:      cg.v0 * f32(renderer.atlas.height)
-					width:  (cg.u1 - cg.u0) * f32(renderer.atlas.width)
-					height: (cg.v1 - cg.v0) * f32(renderer.atlas.height)
+					x:      f32(cg.x)
+					y:      f32(cg.y)
+					width:  f32(cg.width)
+					height: f32(cg.height)
 				}
 
 				mut c := item.color
@@ -196,7 +196,7 @@ pub fn (mut renderer Renderer) max_visual_height(layout Layout) f32 {
 				// Draw Y bottom = Draw Y top + height
 
 				glyph_top := base_y - f32(glyph.y_offset) - f32(cg.top)
-				glyph_h := (cg.v1 - cg.v0) * f32(renderer.atlas.height)
+				glyph_h := f32(cg.height)
 				glyph_bottom := glyph_top + glyph_h
 
 				if glyph_bottom > max_y {
@@ -209,4 +209,15 @@ pub fn (mut renderer Renderer) max_visual_height(layout Layout) f32 {
 	// If no glyphs loaded yet, might result in small height, but that's okay for transient frames.
 	// This function is mostly for stacking layouts.
 	return max_y - min_y
+}
+
+// get_atlas_height returns the current height of the internal glyph atlas.
+pub fn (renderer &Renderer) get_atlas_height() int {
+	return renderer.atlas.height
+}
+
+// debug_insert_bitmap manually inserts a bitmap into the atlas.
+// This is primarily for debugging atlas resizing behavior.
+pub fn (mut renderer Renderer) debug_insert_bitmap(bmp Bitmap, left int, top int) !CachedGlyph {
+	return renderer.atlas.insert_bitmap(bmp, left, top)
 }
