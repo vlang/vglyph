@@ -14,7 +14,7 @@ fn test_add_font_file() {
 	assert !ctx.add_font_file('/path/to/non_existent_file.ttf')
 
 	// Test loading an existing file (we use the asset we found earlier)
-	font_path := '${@DIR}/../assets/feathericon.ttf'
+	font_path := '${@DIR}/assets/feathericon.ttf'
 	if true { // os.exists(font_path) {
 		assert ctx.add_font_file(font_path)
 	}
