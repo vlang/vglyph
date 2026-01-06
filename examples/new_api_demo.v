@@ -40,13 +40,22 @@ fn frame(mut app AppApi) {
 
 	// 1. Simple text drawing
 	cfg := vglyph.TextConfig{
-		font_name: 'Sans 16'
+		font_name: 'sans 16'
 		width:     0 // no wrapping
 	}
-	app.ts.draw_text(50, 10, 'Hello, New API!', vglyph.TextConfig{
+	app.ts.draw_text(50, 10, 'Hello, New API! (px)', vglyph.TextConfig{
 		...cfg
 		font_name: cfg.font_name + 'px'
 	}) or { panic(err) }
+
+	app.ctx.draw_text(250, 10, 'Hello, New API!', gg.TextCfg{
+		family: ''
+		size:      16
+		color:     gg.blue
+	})
+
+	app.ctx.draw_rect_empty(50, 10, 300, 16, gg.red)
+
 	app.ts.draw_text(50, 50, 'Hello, New API!', cfg) or { panic(err) }
 
 	// 2. Text with wrapping and measurement

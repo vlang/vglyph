@@ -325,6 +325,8 @@ pub:
 @[typedef]
 pub struct C.PangoLanguage {}
 
+fn C.pango_language_get_default() &C.PangoLanguage
+
 // PangoLayoutRun is C typedef for PangoGlyphItem, defined for V compatibility.
 @[typedef]
 pub struct C.PangoLayoutRun {
@@ -441,8 +443,10 @@ fn C.pango_font_description_set_size(&C.PangoFontDescription, int) // size in Pa
 fn C.pango_font_description_set_absolute_size(&C.PangoFontDescription, f64)
 fn C.pango_font_description_get_size(&C.PangoFontDescription) int
 fn C.pango_font_description_get_size_is_absolute(&C.PangoFontDescription) bool
+fn C.pango_font_description_get_set_fields(&C.PangoFontDescription) u16
 fn C.pango_layout_get_context(&C.PangoLayout) &C.PangoContext
 fn C.pango_context_get_metrics(&C.PangoContext, &C.PangoFontDescription, &C.PangoLanguage) &C.PangoFontMetrics
+fn C.pango_context_load_font(&C.PangoContext, &C.PangoFontDescription) &C.PangoFont
 fn C.pango_font_metrics_get_approximate_char_width(&C.PangoFontMetrics) int
 
 // Pango Font Metrics
@@ -452,6 +456,7 @@ fn C.pango_font_metrics_get_underline_thickness(&C.PangoFontMetrics) int
 fn C.pango_font_metrics_get_strikethrough_position(&C.PangoFontMetrics) int
 fn C.pango_font_metrics_get_strikethrough_thickness(&C.PangoFontMetrics) int
 fn C.pango_font_metrics_get_ascent(&C.PangoFontMetrics) int
+fn C.pango_font_metrics_get_descent(&C.PangoFontMetrics) int
 fn C.pango_font_metrics_unref(&C.PangoFontMetrics)
 
 // Pango Enums
