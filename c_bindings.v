@@ -18,6 +18,28 @@ pub type C.FcBool = int
 
 pub const ft_face_flag_color = (1 << 14)
 
+pub const ft_load_default = 0
+pub const ft_load_no_scale = (1 << 0)
+pub const ft_load_no_hinting = (1 << 1)
+pub const ft_load_render = (1 << 2)
+pub const ft_load_no_bitmap = (1 << 3)
+pub const ft_load_vertical_layout = (1 << 4)
+pub const ft_load_force_autohint = (1 << 5)
+pub const ft_load_crop_bitmap = (1 << 6)
+pub const ft_load_pedantic = (1 << 7)
+pub const ft_load_ignore_global_advance_width = (1 << 9)
+pub const ft_load_no_recurse = (1 << 10)
+pub const ft_load_ignore_transform = (1 << 11)
+pub const ft_load_monochrome = (1 << 12)
+pub const ft_load_linear_design = (1 << 13)
+pub const ft_load_no_autohint = (1 << 15)
+// Targets
+pub const ft_load_target_normal = (0 << 16)
+pub const ft_load_target_light = (1 << 16)
+pub const ft_load_target_mono = (2 << 16)
+pub const ft_load_target_lcd = (3 << 16)
+pub const ft_load_target_lcd_v = (4 << 16)
+
 @[typedef]
 pub struct C.FT_LibraryRec {
 }

@@ -53,7 +53,10 @@ fn new_glyph_atlas(mut ctx gg.Context, w int, h int) GlyphAtlas {
 }
 
 fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedGlyph {
-	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR
+	// FT_LOAD_TARGET_LIGHT forces auto-hinting with a lighter touch,
+	// which usually looks better on screens than FULL hinting (too distorted)
+	// or NO hinting (too blurry).
+	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR | ft_load_target_light // Use V constant
 
 	if C.FT_Load_Glyph(ft_face, index, flags) != 0 {
 		if index != 0xfffffff {
