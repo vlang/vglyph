@@ -6,7 +6,7 @@ import vglyph
 const window_width = 1000
 const window_height = 800
 
-struct App {
+struct AppSystemFonts {
 mut:
 	ctx      &gg.Context        = unsafe { nil }
 	text_sys &vglyph.TextSystem = unsafe { nil }
@@ -20,7 +20,7 @@ struct FontResult {
 }
 
 fn main() {
-	mut app := &App{}
+	mut app := &AppSystemFonts{}
 	app.ctx = gg.new_context(
 		width:         window_width
 		height:        window_height
@@ -34,7 +34,7 @@ fn main() {
 	app.ctx.run()
 }
 
-fn init(mut app App) {
+fn init(mut app AppSystemFonts) {
 	app.text_sys = vglyph.new_text_system(mut app.ctx) or { panic(err) }
 
 	// Perform resolution checks using a temporary Context
@@ -76,7 +76,7 @@ fn init(mut app App) {
 	}
 }
 
-fn frame(mut app App) {
+fn frame(mut app AppSystemFonts) {
 	app.ctx.begin()
 
 	mut y := f32(20)
