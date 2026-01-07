@@ -42,22 +42,26 @@ fn init(mut app AppSystemFonts) {
 	defer { check_ctx.free() }
 
 	fonts := [
-		'System Font',
 		'Arial',
-		'Times New Roman',
-		'Courier New',
-		'Geneva',
 		'Cochin',
-		'.AppleSystemUIFont',
+		'Comic Sans MS',
+		'Courier New',
+		'Cursive',
+		'Fantasy',
+		'Geneva',
 		'Helvetica Neue',
+		'Marker Felt',
+		'Math',
 		'Menlo',
-		'San Francisco',
-		'SF Pro',
-		'SF Pro Text',
-		'SF Pro Display',
-		'SF UI Text',
-		'SF UI Display',
+		'Mono',
 		'NonExistentFont',
+		'SF Pro',
+		'SF UI Text',
+		'San Francisco',
+		'Serif',
+		'Symbol',
+		'System Font',
+		'Times New Roman',
 	]
 
 	for f in fonts {

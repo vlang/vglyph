@@ -47,11 +47,6 @@ pub fn new_context() !&Context {
 
 	// Load system font on macOS to ensure "System Font" resolves correctly.
 	$if macos {
-		// Use os.user_os() check if needed, but $if macos is compile-time.
-		// Since this is a library, run-time check might be safer if cross-compiling?
-		// But V usually compiles for the target details.
-		// Let's use the compile time check for now as it maps to the build target.
-		// Actually, let's use runtime check if possible to correspond to the file path existence.
 		if os.exists('/System/Library/Fonts/SFNS.ttf') {
 			mut ctx_wrapper := Context{
 				ft_lib:         ft_lib
