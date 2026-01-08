@@ -136,6 +136,12 @@ pub fn (mut ts TextSystem) resolve_font_name(name string) string {
 	return ts.ctx.resolve_font_name(name)
 }
 
+// set_text_quality configures the rendering quality settings (gamma, LCD hinting).
+// Clears changes the renderer settings and clears the glyph cache.
+pub fn (mut ts TextSystem) set_text_quality(config TextQualityConfig) {
+	ts.renderer.set_text_quality(config)
+}
+
 // Internal Helpers
 
 fn (ts TextSystem) get_cache_key(text string, cfg TextConfig) u64 {

@@ -7,6 +7,7 @@ library.
 
 - [TextSystem](#textsystem) - High-level API for easy rendering.
 - [TextConfig](#textconfig) - Configuration for styling/layout.
+- [TextQualityConfig](#textqualityconfig) - Configuration for rendering quality.
 - [Context](#context-struct) - Low-level text layout engine.
 - [Layout](#layout-struct) - Result of text shaping.
 - [Renderer](#renderer-struct) - Low-level rendering engine.
@@ -111,6 +112,17 @@ description string.
 - **Usage**: Useful for debugging system font loading and fallback behavior.
 
 ---
+---
+`fn (mut ts TextSystem) set_text_quality(config TextQualityConfig)`
+
+Configures rendering quality settings such as Gamma Correction and LCD Hinting.
+Applying this immediately clears the internal glyph cache, so it is best called
+during initialization.
+
+- **Parameters**:
+    - `config`: A [TextQualityConfig](#textqualityconfig) struct.
+
+---
 
 ## TextConfig
 
@@ -129,6 +141,20 @@ Configuration struct for defining how text should be laid out and styled.
 | `bg_color` | `gg.Color` | `transparent`| Background color (highlight). |
 | `underline` | `bool` | `false` | Draw a single underline. |
 | `strikethrough`| `bool` | `false` | Draw a strikethrough line. |
+
+---
+
+## TextQualityConfig
+
+`struct TextQualityConfig`
+
+Configuration for the rasterization and blending of glyphs.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `gamma` | `f64` | `1.0` | (Unused Legacy?) Use `alpha_exponential`. |
+| `alpha_exponential` | `f64` | `0.4545` | Gamma correction exponent for alpha blending. Lower values = Lighter text. Standard is `0.4545` (1.0/2.2). |
+| `use_lcd` | `bool` | `false` | Enable LCD (Sub-pixel) hinting. Flattens to grayscale but preserves horizontal definition for sharper text. |
 
 ---
 

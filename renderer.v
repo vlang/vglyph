@@ -10,28 +10,38 @@ pub:
 	data     []u8
 }
 
+pub struct TextQualityConfig {
+pub mut:
+	gamma             f64 = 1.0 // Gamma correction (exponent). Default 1.0 (no correction) or 2.2?
+	alpha_exponential f64 = 0.4545
+	use_lcd           bool
+}
+
 pub struct Renderer {
 mut:
-	ctx   &gg.Context
-	atlas GlyphAtlas
-	cache map[u64]CachedGlyph
+	ctx     &gg.Context
+	atlas   GlyphAtlas
+	cache   map[u64]CachedGlyph
+	quality TextQualityConfig
 }
 
 pub fn new_renderer(mut ctx gg.Context) &Renderer {
 	mut atlas := new_glyph_atlas(mut ctx, 1024, 1024) // 1024x1024 default atlas
 	return &Renderer{
-		ctx:   ctx
-		atlas: atlas
-		cache: map[u64]CachedGlyph{}
+		ctx:     ctx
+		atlas:   atlas
+		cache:   map[u64]CachedGlyph{}
+		quality: TextQualityConfig{}
 	}
 }
 
 pub fn new_renderer_atlas_size(mut ctx gg.Context, width int, height int) &Renderer {
 	mut atlas := new_glyph_atlas(mut ctx, width, height)
 	return &Renderer{
-		ctx:   ctx
-		atlas: atlas
-		cache: map[u64]CachedGlyph{}
+		ctx:     ctx
+		atlas:   atlas
+		cache:   map[u64]CachedGlyph{}
+		quality: TextQualityConfig{}
 	}
 }
 
@@ -44,6 +54,18 @@ pub fn (mut renderer Renderer) commit() {
 		renderer.atlas.image.update_pixel_data(renderer.atlas.image.data)
 		renderer.atlas.dirty = false
 	}
+}
+
+pub fn (mut renderer Renderer) set_text_quality(config TextQualityConfig) {
+	renderer.quality = config
+	// Clear cache and dirty atlas?
+	// Ideally yes, but that requires re-loading glyphs.
+	// For now, let's assume this is called at startup.
+	// If called later, we should probably clear the cache so new glyphs use new settings.
+	renderer.cache.clear()
+	// We can't easily clear the atlas without wiping existing textures.
+	// But `cache.clear()` means we will re-render glyphs to new positions in the atlas.
+	// The old glyphs will remain in the atlas image but be unused/overwritten eventually.
 }
 
 // draw_layout renders Layout at (x, y).

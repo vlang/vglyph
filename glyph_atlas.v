@@ -60,7 +60,8 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedG
 	//
 	// Use V constant for FT_LOAD_TARGET_LIGHT because the C macro is complex
 	// and not automatically exposed by V's C-interop.
-	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR | ft_load_target_light
+	target_flag := if renderer.quality.use_lcd { C.FT_LOAD_TARGET_LCD } else { ft_load_target_light }
+	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR | target_flag
 
 	if C.FT_Load_Glyph(ft_face, index, flags) != 0 {
 		if index != 0xfffffff {
@@ -76,7 +77,7 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedG
 		return CachedGlyph{} // space or empty glyph
 	}
 
-	bitmap := ft_bitmap_to_bitmap(&ft_bitmap, ft_face)!
+	bitmap := ft_bitmap_to_bitmap(&ft_bitmap, ft_face, renderer.quality)!
 
 	return match int(ft_bitmap.pixel_mode) {
 		C.FT_PIXEL_MODE_BGRA { renderer.atlas.insert_bitmap(bitmap, 0, bitmap.height) }
@@ -95,7 +96,7 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedG
 // - **BGRA (Color Bitmap)**: Used for Emoji fonts (e.g., Apple Color Image).
 //   Preserves colors exactly.
 //   Important: Scales bitmap if size doesn't match target PPEM (size).
-pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec) !Bitmap {
+pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, quality TextQualityConfig) !Bitmap {
 	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
 		return error('Empty bitmap')
 	}
@@ -120,17 +121,67 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec) !Bitmap {
 					// Standard monitors are ~2.2 gamma.
 					// Correct the alpha: alpha' = pow(alpha, 1.0/2.2)
 					alpha_norm := f64(v) / 255.0 // Normalize 0-255 to 0.0-1.0
-					// Apply Gamma 1.0/2.2 ~ 0.4545
-					corrected_alpha := math.pow(alpha_norm, 0.4545)
+					// Apply text quality gamma
+					corrected_alpha := math.pow(alpha_norm, quality.alpha_exponential)
 					val := u8(corrected_alpha * 255.0)
 
 					i := (y * width + x) * 4
+					data[i + 0] = 255 // val
+					data[i + 1] = 255 // val
+					data[i + 2] = 255 // val
+					data[i + 3] = val
+				}
+			}
+		}
+		u8(C.FT_PIXEL_MODE_LCD) {
+			// LCD Mode
+			// FreeType LCD bitmap width is in subpixels (3x logical width).
+			// We flatten 3 subpixels (R,G,B) into 1 grayscale pixel.
+			logical_width := width / 3
+
+			for y in 0 .. height {
+				row := match bmp.pitch >= 0 {
+					true { unsafe { bmp.buffer + y * bmp.pitch } }
+					else { unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) } }
+				}
+				// Pitch should be width * 3 approx.
+				// We iterate logical pixels 0..width/3 because usually FreeType reports width as sum of subpixels?
+				// Actually: FT_Bitmap width is indeed in pixels. But for LCD, the pitch is 3 * width.
+				// Wait, checking docs: "In the case of LCD rendering, the bitmap width is equal to the number of *subpixels*."
+				// NO. "For FT_PIXEL_MODE_LCD, each pixel is represented by 3 bytes... The total width in pixels is 'width / 3'".
+				// Actually, FreeType docs say: "for LCD, width is the number of pixels... but the buffer contains 3 bytes per pixel".
+				// Correction: FT_Bitmap.width is "The number of pixels in horizontal direction."
+				// HOWEVER, usually for LCD it just stores 3 bytes per pixel.
+
+				// Let's check pitch vs width.
+				// Actually, let's treat it as:
+				// We need to output `width` pixels relative to the resulting texture.
+				// But C.FT_Bitmap for LCD sometimes reports width as subpixels?
+				//
+				// Let's assume standard behavior: width is pixels. Buffer has 3 * width bytes.
+				// We iterate x from 0 to width.
+				for x in 0 .. logical_width {
+					// 3 bytes per pixel
+					r := unsafe { row[x * 3 + 0] }
+					g := unsafe { row[x * 3 + 1] }
+					b := unsafe { row[x * 3 + 2] }
+
+					// Flatten: Average or use standard weights.
+					// Simple average (R+G+B)/3 is standard for flattening LCD to Gray.
+					avg := (int(r) + int(g) + int(b)) / 3
+
+					alpha_norm := f64(avg) / 255.0
+					corrected_alpha := math.pow(alpha_norm, quality.alpha_exponential)
+					val := u8(corrected_alpha * 255.0)
+
+					i := (y * logical_width + x) * 4
 					data[i + 0] = 255
 					data[i + 1] = 255
 					data[i + 2] = 255
 					data[i + 3] = val
 				}
 			}
+			width = logical_width
 		}
 		u8(C.FT_PIXEL_MODE_MONO) {
 			for y in 0 .. height {

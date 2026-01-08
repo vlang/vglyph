@@ -16,6 +16,15 @@ pub struct C.FcConfig {
 
 pub type C.FcBool = int
 
+pub const ft_pixel_mode_none = 0
+pub const ft_pixel_mode_mono = 1
+pub const ft_pixel_mode_gray = 2
+pub const ft_pixel_mode_gray2 = 3
+pub const ft_pixel_mode_gray4 = 4
+pub const ft_pixel_mode_lcd = 5
+pub const ft_pixel_mode_lcd_v = 6
+pub const ft_pixel_mode_bgra = 7
+
 pub const ft_face_flag_color = (1 << 14)
 
 pub const ft_load_default = 0
