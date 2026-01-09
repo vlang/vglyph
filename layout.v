@@ -415,6 +415,7 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 	descent_pango := (logical_rect.y + logical_rect.height) - baseline_pango
 
 	run_ascent := f64(ascent_pango) / f64(pango_scale)
+
 	run_descent := f64(descent_pango) / f64(pango_scale)
 	run_y := f64(baseline_pango) / f64(pango_scale)
 

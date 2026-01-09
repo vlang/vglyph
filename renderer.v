@@ -83,7 +83,9 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 			key := font_id ^ (u64(glyph.index) << 32)
 
 			cg := renderer.cache[key] or {
-				cached_glyph := renderer.load_glyph(item.ft_face, glyph.index) or {
+				// Calculate target height for this glyph run
+				target_h := int(item.ascent + item.descent)
+				cached_glyph := renderer.load_glyph(item.ft_face, glyph.index, target_h) or {
 					CachedGlyph{} // fallback blank glyph
 				}
 				renderer.cache[key] = cached_glyph

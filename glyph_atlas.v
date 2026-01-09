@@ -52,7 +52,7 @@ fn new_glyph_atlas(mut ctx gg.Context, w int, h int) GlyphAtlas {
 	}
 }
 
-fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedGlyph {
+fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32, target_height int) !CachedGlyph {
 	// FT_LOAD_TARGET_LIGHT forces auto-hinting with a lighter touch,
 	// which usually looks better on screens than FULL hinting (too distorted)
 	// or NO hinting (too blurry).
@@ -76,7 +76,7 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedG
 		return CachedGlyph{} // space or empty glyph
 	}
 
-	bitmap := ft_bitmap_to_bitmap(&ft_bitmap, ft_face)!
+	bitmap := ft_bitmap_to_bitmap(&ft_bitmap, ft_face, target_height)!
 
 	return match int(ft_bitmap.pixel_mode) {
 		C.FT_PIXEL_MODE_BGRA { renderer.atlas.insert_bitmap(bitmap, 0, bitmap.height) }
@@ -95,7 +95,7 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32) !CachedG
 // - **BGRA (Color Bitmap)**: Used for Emoji fonts (e.g., Apple Color Image).
 //   Preserves colors exactly.
 //   Important: Scales bitmap if size doesn't match target PPEM (size).
-pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec) !Bitmap {
+pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, target_height int) !Bitmap {
 	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
 		return error('Empty bitmap')
 	}
@@ -159,13 +159,15 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec) !Bitmap {
 			}
 
 			// Calculate target size (in pixels)
-			// Use the font's ascender height if available. This ensures that static bitmaps (like emojis)
-			// are scaled to match the visual cap-height/ascender of the text, rather than the full
-			// line height (which includes descenders and gap).
+			// Use explicitly requested target_height if available.
+			// Otherwise use metrics (though metrics are often untrustworthy for bitmap fonts like Noto Color Emoji which report native size).
+
 			y_ppem := int(ft_face.size.metrics.y_ppem)
 			ascender := int(ft_face.size.metrics.ascender) >> 6 // 26.6 fixed point to pixels
 
-			target_size := if ascender > 0 && ascender < y_ppem {
+			target_size := if target_height > 0 {
+				target_height
+			} else if ascender > 0 && ascender < y_ppem {
 				ascender
 			} else {
 				y_ppem
