@@ -135,6 +135,13 @@ pub fn (mut ts TextSystem) resolve_font_name(name string) string {
 	return ts.ctx.resolve_font_name(name)
 }
 
+// layout_text computes the layout for the given text and config.
+// This bypasses the cache and returns a new Layout struct.
+// Useful for advanced text manipulation (hit testing, measuring).
+pub fn (mut ts TextSystem) layout_text(text string, cfg TextConfig) !Layout {
+	return ts.ctx.layout_text(text, cfg)
+}
+
 // Internal Helpers
 
 fn (ts TextSystem) get_cache_key(text string, cfg TextConfig) u64 {

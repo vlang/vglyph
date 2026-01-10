@@ -280,6 +280,17 @@ pub struct C.PangoFont {}
 pub struct C.PangoLayoutIter {}
 
 @[typedef]
+pub struct C.PangoLayoutLine {
+pub:
+	layout             &C.PangoLayout
+	start_index        int
+	length             int
+	runs               &C.GSList
+	is_paragraph_start u32 // bitfield
+	resolved_dir       u32 // bitfield
+}
+
+@[typedef]
 pub struct C.PangoAttrList {}
 
 // Pango Structs with accessible fields
@@ -464,6 +475,10 @@ fn C.pango_layout_index_to_pos(&C.PangoLayout, int, &C.PangoRectangle)
 fn C.pango_layout_iter_free(&C.PangoLayoutIter)
 fn C.pango_layout_iter_next_run(&C.PangoLayoutIter) bool
 fn C.pango_layout_iter_get_run_readonly(&C.PangoLayoutIter) &C.PangoGlyphItem
+fn C.pango_layout_iter_get_line_readonly(&C.PangoLayoutIter) &C.PangoLayoutLine
+fn C.pango_layout_iter_get_line_extents(&C.PangoLayoutIter, &C.PangoRectangle, &C.PangoRectangle)
+fn C.pango_layout_iter_next_line(&C.PangoLayoutIter) bool
+fn C.pango_layout_line_x_to_index(&C.PangoLayoutLine, int, &int, &int) bool
 
 // Pango Font Description
 fn C.pango_font_description_new() &C.PangoFontDescription

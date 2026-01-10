@@ -7,12 +7,21 @@ pub struct Layout {
 pub mut:
 	items      []Item
 	char_rects []CharRect
+	lines      []Line
 }
 
 pub struct CharRect {
 pub:
 	rect  gg.Rect
 	index int // Byte index
+}
+
+pub struct Line {
+pub:
+	start_index        int
+	length             int
+	rect               gg.Rect // Logical bounding box of the line (relative to layout)
+	is_paragraph_start bool
 }
 
 pub struct Item {
@@ -169,10 +178,12 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	}
 
 	char_rects := compute_hit_test_rects(layout, text)
+	lines := compute_lines(layout, iter) // Re-use iter logic or new iter
 
 	return Layout{
 		items:      items
 		char_rects: char_rects
+		lines:      lines
 	}
 }
 
@@ -587,4 +598,184 @@ pub fn (l Layout) hit_test(x f32, y f32) int {
 		}
 	}
 	return -1
+}
+
+fn compute_lines(layout &C.PangoLayout, iter &C.PangoLayoutIter) []Line {
+	mut lines := []Line{}
+	// Reset iterator to start
+	// Note: The passed 'iter' might be at the end from previous run iteration.
+	// It's safer to create a new one or reset if valid. Pango iterators don't have a reset.
+	// So we create a new one.
+	line_iter := C.pango_layout_get_iter(layout)
+	defer { C.pango_layout_iter_free(line_iter) }
+
+	for {
+		line_ptr := C.pango_layout_iter_get_line_readonly(line_iter)
+		if line_ptr != unsafe { nil } {
+			rect := C.PangoRectangle{}
+			C.pango_layout_iter_get_line_extents(line_iter, unsafe { nil }, &rect)
+
+			// Pango coords to Pixels
+			mut final_x := f32(rect.x) / f32(pango_scale)
+			mut final_y := f32(rect.y) / f32(pango_scale)
+			mut final_w := f32(rect.width) / f32(pango_scale)
+			mut final_h := f32(rect.height) / f32(pango_scale)
+
+			lines << Line{
+				start_index:        line_ptr.start_index
+				length:             line_ptr.length
+				rect:               gg.Rect{
+					x:      final_x
+					y:      final_y
+					width:  final_w
+					height: final_h
+				}
+				is_paragraph_start: (line_ptr.is_paragraph_start & 1) != 0
+			}
+		}
+
+		if !C.pango_layout_iter_next_line(line_iter) {
+			break
+		}
+	}
+	return lines
+}
+
+// get_closest_offset returns the byte index of the character closest to (x, y).
+// Handles clicks outside bounds (returns nearest edge/line).
+pub fn (l Layout) get_closest_offset(x f32, y f32) int {
+	if l.lines.len == 0 {
+		return 0
+	}
+
+	// 1. Find the closest line vertically
+	mut closest_line_idx := 0
+	mut min_dist_y := f32(1e9)
+
+	for i, line in l.lines {
+		// Check containment or distance
+		// Simple distance to vertical center of line
+		line_mid_y := line.rect.y + line.rect.height / 2
+		dist := match true {
+			y >= line.rect.y && y <= line.rect.y + line.rect.height { 0.0 } // Inside
+			else { get_abs(y - line_mid_y) }
+		}
+
+		if dist < min_dist_y {
+			min_dist_y = dist
+			closest_line_idx = i
+		}
+	}
+
+	target_line := l.lines[closest_line_idx]
+
+	// 2. Resolve X using Pango (requires recalculation or stored PangoLayout... wait)
+	// We don't have the PangoLayout stored in V struct Layout (it's transient).
+	// So we must rely on our cached data (CharRects).
+
+	// Linear search within the line's range
+	line_end := target_line.start_index + target_line.length
+	mut closest_char_idx := target_line.start_index
+	mut min_dist_x := f32(1e9)
+
+	// If x is before line start
+	if x < target_line.rect.x {
+		return target_line.start_index
+	}
+	// If x is after line end
+	if x > target_line.rect.x + target_line.rect.width {
+		// Return end of line (but we need to know if it's newline char or not)
+		// Usually target_line.start_index + target_line.length
+		return line_end
+	}
+
+	// Scan chars in this line
+	// Note: hit_test only works if ON a char. We need "nearest".
+	for i in target_line.start_index .. line_end {
+		// Find CharRect for this index
+		// This is slow O(N) scan again. Optimization: Store map or sorted array.
+		// For now simple scan.
+		for cr in l.char_rects {
+			if cr.index == i {
+				char_mid_x := cr.rect.x + cr.rect.width / 2
+				dist := get_abs(x - char_mid_x)
+				if dist < min_dist_x {
+					min_dist_x = dist
+					closest_char_idx = i
+				}
+				break
+			}
+		}
+	}
+
+	// Edge case: if we are closer to the right edge of the last char
+	// we should probably return index + char_len?
+	// Simplified: return index of char center closest to mouse.
+	return closest_char_idx
+}
+
+// get_selection_rects returns a list of rectangles covering the text range [start, end).
+pub fn (l Layout) get_selection_rects(start int, end int) []gg.Rect {
+	if start >= end || l.lines.len == 0 {
+		return []gg.Rect{}
+	}
+
+	mut rects := []gg.Rect{}
+	mut s := start
+	mut e := end
+
+	// Clamp
+	if s < 0 {
+		s = 0
+	}
+	// Max index? approximation
+	// if e > max_len { ... }
+
+	for line in l.lines {
+		line_end := line.start_index + line.length
+
+		// Check intersection
+		// Range 1: [line.start, line_end)
+		// Range 2: [s, e)
+
+		overlap_start := if s > line.start_index { s } else { line.start_index }
+		overlap_end := if e < line_end { e } else { line_end }
+
+		if overlap_start < overlap_end {
+			// Calculate visual rect for this overlap
+			// Iterate chars in overlap
+			mut min_x := f32(1e9)
+			mut max_x := f32(-1e9)
+			mut found := false
+
+			for i in overlap_start .. overlap_end {
+				for cr in l.char_rects {
+					if cr.index == i {
+						if cr.rect.x < min_x {
+							min_x = cr.rect.x
+						}
+						if cr.rect.x + cr.rect.width > max_x {
+							max_x = cr.rect.x + cr.rect.width
+						}
+						found = true
+						break
+					}
+				}
+			}
+
+			if found {
+				rects << gg.Rect{
+					x:      min_x
+					y:      line.rect.y
+					width:  max_x - min_x
+					height: line.rect.height
+				}
+			}
+		}
+	}
+	return rects
+}
+
+fn get_abs(v f32) f32 {
+	return if v < 0 { -v } else { v }
 }
