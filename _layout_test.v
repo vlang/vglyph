@@ -1,10 +1,10 @@
 module vglyph
 
-import gg
+import gg as _
 
 // Test context creation and cleanup
 fn test_context_creation() {
-	mut ctx := new_context() or {
+	mut ctx := new_context(1.0) or {
 		assert false, 'Failed to create context: ${err}'
 		return
 	}
@@ -15,7 +15,7 @@ fn test_context_creation() {
 
 // Test basic layout generation
 fn test_layout_simple_text() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{
@@ -40,7 +40,7 @@ fn test_layout_simple_text() {
 
 // Test empty text
 fn test_layout_empty_text() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{
@@ -55,7 +55,7 @@ fn test_layout_empty_text() {
 
 // Test wrapping
 fn test_layout_wrapping() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{
@@ -81,7 +81,7 @@ fn test_layout_wrapping() {
 
 // Test hit testing
 fn test_hit_test() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{
@@ -106,7 +106,7 @@ fn test_hit_test() {
 
 // Test markup
 fn test_layout_markup() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{
@@ -130,7 +130,7 @@ fn test_layout_markup() {
 
 // Test hit test rect
 fn test_hit_test_rect() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	cfg := TextConfig{

@@ -44,7 +44,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		if run_ptr != unsafe { nil } {
 			// Explicit cast since V treats C.PangoGlyphItem and C.PangoLayoutRun as distinct types
 			run := unsafe { &C.PangoLayoutRun(run_ptr) }
-			item := process_run(run, iter, text)
+			item := process_run(run, iter, text, ctx.scale_factor)
 			if item.glyphs.len > 0 {
 				items << item
 			}
@@ -55,8 +55,8 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 		}
 	}
 
-	char_rects := compute_hit_test_rects(layout, text)
-	lines := compute_lines(layout, iter) // Re-use iter logic or new iter
+	char_rects := compute_hit_test_rects(layout, text, ctx.scale_factor)
+	lines := compute_lines(layout, iter, ctx.scale_factor) // Re-use iter logic or new iter
 
 	return Layout{
 		items:      items
@@ -299,7 +299,7 @@ fn get_run_metrics(pango_font &C.PangoFont, language &C.PangoLanguage, attrs Run
 
 // process_run converts a single Pango glyph run into a V `Item`.
 // Handles attribute parsing, metric calculation, and glyph extraction.
-fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item {
+fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string, scale_factor f32) Item {
 	pango_item := run.item
 	pango_font := pango_item.analysis.font
 	if pango_font == unsafe { nil } {
@@ -326,16 +326,16 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 	C.pango_layout_iter_get_run_extents(iter, unsafe { nil }, &logical_rect)
 
 	// Round run position to integer grid
-	run_x := f64(logical_rect.x) / f64(pango_scale)
+	run_x := (f64(logical_rect.x) / f64(pango_scale)) / scale_factor
 
 	baseline_pango := C.pango_layout_iter_get_baseline(iter)
 	ascent_pango := baseline_pango - logical_rect.y
 	descent_pango := (logical_rect.y + logical_rect.height) - baseline_pango
 
-	run_ascent := f64(ascent_pango) / f64(pango_scale)
+	run_ascent := (f64(ascent_pango) / f64(pango_scale)) / scale_factor
 
-	run_descent := f64(descent_pango) / f64(pango_scale)
-	run_y := f64(baseline_pango) / f64(pango_scale)
+	run_descent := (f64(descent_pango) / f64(pango_scale)) / scale_factor
+	run_y := (f64(baseline_pango) / f64(pango_scale)) / scale_factor
 
 	// Extract glyphs
 	glyph_string := run.glyphs
@@ -347,9 +347,9 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 	for i in 0 .. num_glyphs {
 		unsafe {
 			info := infos[i]
-			x_off := f64(info.geometry.x_offset) / f64(pango_scale)
-			y_off := f64(info.geometry.y_offset) / f64(pango_scale)
-			x_adv := f64(info.geometry.width) / f64(pango_scale)
+			x_off := (f64(info.geometry.x_offset) / f64(pango_scale)) / scale_factor
+			y_off := (f64(info.geometry.y_offset) / f64(pango_scale)) / scale_factor
+			x_adv := (f64(info.geometry.width) / f64(pango_scale)) / scale_factor
 			y_adv := 0.0
 
 			glyphs << Glyph{
@@ -418,7 +418,7 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string) Item
 
 // compute_hit_test_rects generates bounding boxes for every character
 // to enable efficient hit testing.
-fn compute_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
+fn compute_hit_test_rects(layout &C.PangoLayout, text string, scale_factor f32) []CharRect {
 	mut char_rects := []CharRect{}
 	mut i := 0
 	// Calculate fallback width for zero-width spaces
@@ -435,10 +435,10 @@ fn compute_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
 		pos := C.PangoRectangle{}
 		C.pango_layout_index_to_pos(layout, i, &pos)
 
-		mut final_x := f32(pos.x) / f32(pango_scale)
-		mut final_y := f32(pos.y) / f32(pango_scale)
-		mut final_w := f32(pos.width) / f32(pango_scale)
-		mut final_h := f32(pos.height) / f32(pango_scale)
+		mut final_x := (f32(pos.x) / f32(pango_scale)) / scale_factor
+		mut final_y := (f32(pos.y) / f32(pango_scale)) / scale_factor
+		mut final_w := (f32(pos.width) / f32(pango_scale)) / scale_factor
+		mut final_h := (f32(pos.height) / f32(pango_scale)) / scale_factor
 
 		if final_w < 0 {
 			final_x += final_w
@@ -479,7 +479,7 @@ fn compute_hit_test_rects(layout &C.PangoLayout, text string) []CharRect {
 	return char_rects
 }
 
-fn compute_lines(layout &C.PangoLayout, iter &C.PangoLayoutIter) []Line {
+fn compute_lines(layout &C.PangoLayout, iter &C.PangoLayoutIter, scale_factor f32) []Line {
 	mut lines := []Line{}
 	// Reset iterator to start
 	// Note: The passed 'iter' might be at the end from previous run iteration.
@@ -495,10 +495,10 @@ fn compute_lines(layout &C.PangoLayout, iter &C.PangoLayoutIter) []Line {
 			C.pango_layout_iter_get_line_extents(line_iter, unsafe { nil }, &rect)
 
 			// Pango coords to Pixels
-			mut final_x := f32(rect.x) / f32(pango_scale)
-			mut final_y := f32(rect.y) / f32(pango_scale)
-			mut final_w := f32(rect.width) / f32(pango_scale)
-			mut final_h := f32(rect.height) / f32(pango_scale)
+			mut final_x := (f32(rect.x) / f32(pango_scale)) / scale_factor
+			mut final_y := (f32(rect.y) / f32(pango_scale)) / scale_factor
+			mut final_w := (f32(rect.width) / f32(pango_scale)) / scale_factor
+			mut final_h := (f32(rect.height) / f32(pango_scale)) / scale_factor
 
 			lines << Line{
 				start_index:        line_ptr.start_index

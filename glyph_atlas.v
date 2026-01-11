@@ -259,7 +259,8 @@ pub fn (mut atlas GlyphAtlas) grow(new_height int) {
 	old_size := atlas.width * atlas.height * 4
 	new_size := atlas.width * new_height * 4
 
-	mut new_data := unsafe { malloc(new_size) }
+	mut new_data := unsafe { vcalloc(new_size) } // Allocate memory for the texture data (zero-initialized)
+	// Using vcalloc is critical to avoid "black rectangle" artifacts from uninitialized memory.
 
 	// Copy old data
 	unsafe {

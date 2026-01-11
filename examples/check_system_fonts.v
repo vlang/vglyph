@@ -2,6 +2,7 @@ module main
 
 import gg
 import vglyph
+import sokol.sapp
 
 const window_width = 1000
 const window_height = 800
@@ -38,7 +39,8 @@ fn init(mut app AppSystemFonts) {
 	app.text_sys = vglyph.new_text_system(mut app.ctx) or { panic(err) }
 
 	// Perform resolution checks using a temporary Context
-	mut check_ctx := vglyph.new_context() or { panic(err) }
+	scale := sapp.dpi_scale()
+	mut check_ctx := vglyph.new_context(scale) or { panic(err) }
 	defer { check_ctx.free() }
 
 	fonts := [

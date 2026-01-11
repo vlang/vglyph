@@ -2,6 +2,7 @@ module main
 
 import vglyph
 import gg
+import sokol.sapp
 
 struct AtlasApp {
 mut:
@@ -27,7 +28,9 @@ fn init(mut app AtlasApp) {
 	println('Context initialized. Creating renderer...')
 	// Start with a very small atlas to force resize shortly
 	// 128x128 atlas.
-	app.renderer = vglyph.new_renderer_atlas_size(mut app.ctx, 128, 128)
+	// 128x128 atlas.
+	scale := sapp.dpi_scale()
+	app.renderer = vglyph.new_renderer_atlas_size(mut app.ctx, 128, 128, scale)
 
 	initial_height := app.renderer.get_atlas_height()
 	println('Initial atlas height: ${initial_height}')

@@ -1,7 +1,7 @@
 module vglyph
 
 fn test_font_height_sanity() {
-	mut ctx := new_context() or {
+	mut ctx := new_context(1.0) or {
 		assert false, 'Failed to create context'
 		return
 	}
@@ -22,7 +22,7 @@ fn test_font_height_sanity() {
 }
 
 fn test_font_height_pixels() {
-	mut ctx := new_context()!
+	mut ctx := new_context(1.0)!
 	defer { ctx.free() }
 
 	// Test with pixel size

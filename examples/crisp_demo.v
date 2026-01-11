@@ -2,6 +2,7 @@ module main
 
 import vglyph
 import gg
+import sokol.sapp
 
 const crisp_win_width = 600
 const crisp_win_height = 400
@@ -28,8 +29,9 @@ fn main() {
 }
 
 fn init(mut app CrispApp) {
-	app.text_system = vglyph.new_context() or { panic(err) }
-	app.renderer = vglyph.new_renderer(mut app.ctx)
+	scale := sapp.dpi_scale()
+	app.text_system = vglyph.new_context(scale) or { panic(err) }
+	app.renderer = vglyph.new_renderer(mut app.ctx, scale)
 }
 
 fn frame(mut app CrispApp) {

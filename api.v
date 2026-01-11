@@ -1,6 +1,7 @@
 module vglyph
 
 import gg
+import sokol.sapp
 import time
 
 struct CachedLayout {
@@ -20,8 +21,9 @@ mut:
 // new_text_system creates a new TextSystem, initializing Pango context and
 // Renderer.
 pub fn new_text_system(mut gg_ctx gg.Context) !&TextSystem {
-	tr_ctx := new_context()!
-	renderer := new_renderer(mut gg_ctx)
+	scale := sapp.dpi_scale()
+	tr_ctx := new_context(scale)!
+	renderer := new_renderer(mut gg_ctx, scale)
 	return &TextSystem{
 		ctx:      tr_ctx
 		renderer: renderer
@@ -30,8 +32,9 @@ pub fn new_text_system(mut gg_ctx gg.Context) !&TextSystem {
 }
 
 pub fn new_text_system_atlas_size(mut gg_ctx gg.Context, atlas_width int, atlas_height int) !&TextSystem {
-	tr_ctx := new_context()!
-	renderer := new_renderer_atlas_size(mut gg_ctx, atlas_width, atlas_height)
+	scale := sapp.dpi_scale()
+	tr_ctx := new_context(scale)!
+	renderer := new_renderer_atlas_size(mut gg_ctx, atlas_width, atlas_height, scale)
 	return &TextSystem{
 		ctx:      tr_ctx
 		renderer: renderer

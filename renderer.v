@@ -1,6 +1,7 @@
 module vglyph
 
 import gg
+import math
 
 pub struct Bitmap {
 pub:
@@ -12,26 +13,29 @@ pub:
 
 pub struct Renderer {
 mut:
-	ctx   &gg.Context
-	atlas GlyphAtlas
-	cache map[u64]CachedGlyph
+	ctx          &gg.Context
+	atlas        GlyphAtlas
+	cache        map[u64]CachedGlyph
+	scale_factor f32 = 1.0
 }
 
-pub fn new_renderer(mut ctx gg.Context) &Renderer {
+pub fn new_renderer(mut ctx gg.Context, scale_factor f32) &Renderer {
 	mut atlas := new_glyph_atlas(mut ctx, 1024, 1024) // 1024x1024 default atlas
 	return &Renderer{
-		ctx:   ctx
-		atlas: atlas
-		cache: map[u64]CachedGlyph{}
+		ctx:          ctx
+		atlas:        atlas
+		cache:        map[u64]CachedGlyph{}
+		scale_factor: scale_factor
 	}
 }
 
-pub fn new_renderer_atlas_size(mut ctx gg.Context, width int, height int) &Renderer {
+pub fn new_renderer_atlas_size(mut ctx gg.Context, width int, height int, scale_factor f32) &Renderer {
 	mut atlas := new_glyph_atlas(mut ctx, width, height)
 	return &Renderer{
-		ctx:   ctx
-		atlas: atlas
-		cache: map[u64]CachedGlyph{}
+		ctx:          ctx
+		atlas:        atlas
+		cache:        map[u64]CachedGlyph{}
+		scale_factor: scale_factor
 	}
 }
 
@@ -103,24 +107,34 @@ pub fn (mut renderer Renderer) draw_layout(layout Layout, x f32, y f32) {
 			// Compute draw position (relative to pen position)
 			// cg.left is bitmap_left
 			// cg.top is bitmap_top
-			draw_x := cx + f32(glyph.x_offset) + f32(cg.left)
-			draw_y := cy - f32(glyph.y_offset) - f32(cg.top)
+			// High-DPI Handling:
+			// Layout coordinates (cx, cy) are Logical.
+			// Glyph metrics (cg.left, cg.top, cg.width, cg.height) are Physical.
+			// We must scale Physical metrics down to Logical for drawing.
+			scale := renderer.scale_factor
 
-			glyph_w := f32(cg.width)
-			glyph_h := f32(cg.height)
+			// Snap to nearest PHYSICAL pixel to avoid subpixel blurring
+			raw_x := cx + f32(glyph.x_offset) + (f32(cg.left) / scale)
+			raw_y := cy - f32(glyph.y_offset) - (f32(cg.top) / scale)
+
+			draw_x := f32(math.round(raw_x * scale)) / scale
+			draw_y := f32(math.round(raw_y * scale)) / scale
+
+			glyph_w := f32(cg.width) / scale
+			glyph_h := f32(cg.height) / scale
 
 			// Draw image from glyph atlas
 			if cg.width > 0 && cg.height > 0 {
 				dst := gg.Rect{
-					x:      draw_x  // f32(math.round(draw_x))
-					y:      draw_y  // f32(math.round(draw_y))
-					width:  glyph_w // f32(math.round(glyph_w))
-					height: glyph_h // f32(math.round(glyph_h))
+					x:      draw_x
+					y:      draw_y
+					width:  glyph_w
+					height: glyph_h
 				}
 				src := gg.Rect{
 					x:      f32(cg.x)
 					y:      f32(cg.y)
-					width:  f32(cg.width)
+					width:  f32(cg.width) // Source is always Physical pixels in texture
 					height: f32(cg.height)
 				}
 

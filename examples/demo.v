@@ -1,6 +1,7 @@
 module main
 
 import gg
+import sokol.sapp
 import vglyph
 
 struct AppDemo {
@@ -38,7 +39,7 @@ fn main() {
 }
 
 fn init(mut app AppDemo) {
-	app.tr_ctx = vglyph.new_context() or { panic(err) }
+	app.tr_ctx = vglyph.new_context(sapp.dpi_scale()) or { panic(err) }
 
 	// Pango handles font fallback automatically.
 	// We just ask for a base font and size.
@@ -81,7 +82,8 @@ fn init(mut app AppDemo) {
 		align:      .left
 	}) or { panic(err.msg()) }
 
-	app.renderer = vglyph.new_renderer(mut app.ctx)
+	scale := sapp.dpi_scale()
+	app.renderer = vglyph.new_renderer(mut app.ctx, scale)
 }
 
 fn frame(mut app AppDemo) {

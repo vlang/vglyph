@@ -40,7 +40,7 @@ fn frame(mut app AppApi) {
 
 	// 1. Simple text drawing
 	cfg := vglyph.TextConfig{
-		font_name: 'sans 16'
+		font_name: 'sans 16px'
 		width:     0 // no wrapping
 	}
 	app.ts.draw_text(50, 10, 'Hello, New API! (px)', vglyph.TextConfig{

@@ -6,6 +6,7 @@ pub struct Context {
 	ft_lib         &C.FT_LibraryRec
 	pango_font_map &C.PangoFontMap
 	pango_context  &C.PangoContext
+	scale_factor   f32 = 1.0
 }
 
 // new_context initializes the global Pango and FreeType environment.
@@ -17,9 +18,9 @@ pub struct Context {
 //
 // Keep context alive for application duration. Passing this to `layout_text`
 // shares the font cache.
-pub fn new_context() !&Context {
+pub fn new_context(scale_factor f32) !&Context {
 	// Initialize pointer to null
-	mut ft_lib := &C.FT_LibraryRec(unsafe { nil })
+	ft_lib := &C.FT_LibraryRec(unsafe { nil })
 	if C.FT_Init_FreeType(&ft_lib) != 0 {
 		log.error('${@FILE_LINE}: Failed to initialize FreeType library')
 		return error('Failed to initialize FreeType library')
@@ -31,10 +32,9 @@ pub fn new_context() !&Context {
 		log.error('${@FILE_LINE}: Failed to create Pango Font Map')
 		return error('Failed to create Pango Font Map')
 	}
-	// Set default resolution to 96 DPI (standard for screens).
-	// This ensures that points (1/72 in) and pixels (1/96 in) are distinct.
-	// Without this, Pango defaults to 72 DPI, making 1 pt == 1 px.
-	C.pango_ft2_font_map_set_resolution(pango_font_map, 96.0, 96.0)
+	// Set default resolution to 72 DPI * scale_factor.
+	// This ensures that 1 pt == 1 px (logical).
+	C.pango_ft2_font_map_set_resolution(pango_font_map, 72.0 * scale_factor, 72.0 * scale_factor)
 
 	pango_context := C.pango_font_map_create_context(pango_font_map)
 	if voidptr(pango_context) == unsafe { nil } {
@@ -48,6 +48,7 @@ pub fn new_context() !&Context {
 		ft_lib:         ft_lib
 		pango_font_map: pango_font_map
 		pango_context:  pango_context
+		scale_factor:   scale_factor
 	}
 }
 
@@ -121,11 +122,8 @@ pub fn (mut ctx Context) font_height(cfg TextConfig) f32 {
 	ascent := C.pango_font_metrics_get_ascent(metrics)
 	descent := C.pango_font_metrics_get_descent(metrics)
 
-	if ascent == 0 {
-		log.error('${@FILE_LINE}: Logic error: ascent == 0')
-	}
-
-	return f32(ascent + descent) / f32(pango_scale)
+	// descent is positive distance from baseline down even though it's "down"
+	return (f32(ascent + descent) / f32(pango_scale)) / ctx.scale_factor
 }
 
 // resolve_font_name returns the actual font family name that Pango resolves

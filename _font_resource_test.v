@@ -3,7 +3,7 @@ module vglyph
 fn test_add_font_file() {
 	// We test Context directly to avoid initializing the full graphics subsystem (gg/sokol)
 	// which can fail in headless test environments.
-	mut ctx := new_context() or {
+	mut ctx := new_context(1.0) or {
 		assert false, 'failed to create context'
 		return
 	}
