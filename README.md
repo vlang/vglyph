@@ -1,7 +1,5 @@
 # VGlyph
 
-### *Work in Progress / Not Production Ready*
-
 A high-performance text rendering engine for the V programming language, built on
 **Pango**, **FreeType**, and **Sokol**.
 
