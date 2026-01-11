@@ -44,6 +44,26 @@ high-resolution displays or large character sets.
 
 ---
 ---
+`fn (mut ts TextSystem) add_font_file(path string) bool`
+
+Loads a local font file (TTF/OTF) for use.
+
+- **Parameters**:
+    - `path`: Path to the font file.
+- **Returns**: `true` if successful.
+- **Usage**: After loading `assets/myfont.ttf`, rely on the *Family Name*
+  (e.g. "MyFont") in your `TextConfig`, not the filename.
+
+---
+---
+`fn (mut ts TextSystem) commit()`
+
+**CRITICAL**: Must be called once at the end of your frame (after all
+`draw_text` calls). Uploads the modified glyph atlas texture to the GPU. If
+omitted, new characters will appear as empty rectangles.
+
+---
+---
 `fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) !`
 
 Renders text at the specified coordinates.
@@ -58,20 +78,6 @@ Renders text at the specified coordinates.
 
 ---
 ---
-`fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32`
-
-Calculates the logical width of the text without rendering it. Useful for layout
-calculations (e.g., center alignment parent containers).
-
----
----
-`fn (mut ts TextSystem) text_height(text string, cfg TextConfig) !f32`
-
-Calculates the visual height of the text. This accounts for the actual ink
-bounds of the glyphs, which may differ from logical line height.
-
----
----
 `fn (mut ts TextSystem) font_height(cfg TextConfig) f32`
 
 Returns the true height of the font (ascent + descent) in pixels. This is the
@@ -80,28 +86,10 @@ text content.
 
 ---
 ---
-`fn (mut ts TextSystem) commit()`
-
-**CRITICAL**: Must be called once at the end of your frame (after all
-`draw_text` calls). Uploads the modified glyph atlas texture to the GPU. If
-omitted, new characters will appear as empty rectangles.
-
 `fn (ts &TextSystem) get_atlas_image() gg.Image`
 
 Returns the underlying `gg.Image` of the glyph atlas. Useful for debugging or
 custom rendering effects.
-
----
----
-`fn (mut ts TextSystem) add_font_file(path string) bool`
-
-Loads a local font file (TTF/OTF) for use.
-
-- **Parameters**:
-    - `path`: Path to the font file.
-- **Returns**: `true` if successful.
-- **Usage**: After loading `assets/myfont.ttf`, rely on the *Family Name*
-  (e.g. "MyFont") in your `TextConfig`, not the filename.
 
 ---
 ---
@@ -114,6 +102,20 @@ description string.
     - `name`: The font description name (e.g. `'Arial'`, `'Sans Bold'`).
 - **Returns**: The resolved family name (e.g. `'Arial'` or `'Verdana'` if fallback happened).
 - **Usage**: Useful for debugging system font loading and fallback behavior.
+
+---
+---
+`fn (mut ts TextSystem) text_height(text string, cfg TextConfig) !f32`
+
+Calculates the visual height of the text. This accounts for the actual ink
+bounds of the glyphs, which may differ from logical line height.
+
+---
+---
+`fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32`
+
+Calculates the logical width of the text without rendering it. Useful for layout
+calculations (e.g., center alignment parent containers).
 
 ---
 
@@ -149,12 +151,6 @@ use `TextSystem` instead.
 
 ---
 ---
-`fn new_context() !&Context`
-
-Creates a new Pango context.
-
----
----
 `fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout`
 
 Performs the "Shaping" process.
@@ -162,6 +158,12 @@ Performs the "Shaping" process.
 - Converts text into glyphs, positions them, and wraps lines.
 - **Expensive Operation**: Should not be called every frame for the same text.
   Store the result if using `Context` directly.
+
+---
+---
+`fn new_context() !&Context`
+
+Creates a new Pango context.
 
 ---
 ---
@@ -193,19 +195,6 @@ decoupled from Pango.
 
 ---
 ---
-`fn (l Layout) hit_test(x f32, y f32) int`
-
-Returns the byte index of the character at the given local coordinates. Returns
-`-1` if no character is hit.
-
----
----
-`fn (l Layout) hit_test_rect(x f32, y f32) ?gg.Rect`
-
-Returns the bounding box (`gg.Rect`) of the character at the given coordinates.
-
----
----
 `fn (l Layout) get_closest_offset(x f32, y f32) int`
 
 Returns the byte index of the character closest to the given coordinates. Unlike
@@ -220,6 +209,19 @@ Returns a list of rectangles covering the text range `[start, end)`. Useful for
 drawing selection highlights. Handles multi-line selections correctly.
 
 ---
+---
+`fn (l Layout) hit_test(x f32, y f32) int`
+
+Returns the byte index of the character at the given local coordinates. Returns
+`-1` if no character is hit.
+
+---
+---
+`fn (l Layout) hit_test_rect(x f32, y f32) ?gg.Rect`
+
+Returns the bounding box (`gg.Rect`) of the character at the given coordinates.
+
+---
 
 ## Renderer (Struct)
 
@@ -231,9 +233,9 @@ drawing selection highlights. Handles multi-line selections correctly.
 
 ---
 ---
-`fn new_renderer(mut ctx gg.Context) &Renderer`
+`fn (mut r Renderer) commit()`
 
-Creates a renderer with default settings.
+Uploads the texture atlas. Same requirement as `TextSystem.commit()`.
 
 ---
 ---
@@ -243,9 +245,9 @@ Queues the draw commands for a given layout.
 
 ---
 ---
-`fn (mut r Renderer) commit()`
+`fn new_renderer(mut ctx gg.Context) &Renderer`
 
-Uploads the texture atlas. Same requirement as `TextSystem.commit()`.
+Creates a renderer with default settings.
 
 ---
 
