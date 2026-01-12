@@ -17,7 +17,6 @@ mut:
 	atlas        GlyphAtlas
 	cache        map[u64]CachedGlyph
 	scale_factor f32 = 1.0
-	lcd_mode     bool
 }
 
 pub fn new_renderer(mut ctx gg.Context, scale_factor f32) &Renderer {
@@ -27,7 +26,6 @@ pub fn new_renderer(mut ctx gg.Context, scale_factor f32) &Renderer {
 		atlas:        atlas
 		cache:        map[u64]CachedGlyph{}
 		scale_factor: scale_factor
-		lcd_mode:     scale_factor < 2.0
 	}
 }
 
@@ -38,7 +36,6 @@ pub fn new_renderer_atlas_size(mut ctx gg.Context, width int, height int, scale_
 		atlas:        atlas
 		cache:        map[u64]CachedGlyph{}
 		scale_factor: scale_factor
-		lcd_mode:     scale_factor < 2.0
 	}
 }
 

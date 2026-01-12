@@ -26,8 +26,6 @@ pub fn new_context(scale_factor f32) !&Context {
 		return error('Failed to initialize FreeType library')
 	}
 
-	C.FT_Library_SetLcdFilter(ft_lib, ft_lcd_filter_default)
-
 	pango_font_map := C.pango_ft2_font_map_new()
 	if voidptr(pango_font_map) == unsafe { nil } {
 		C.FT_Done_FreeType(ft_lib)

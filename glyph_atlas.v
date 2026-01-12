@@ -63,7 +63,7 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32, target_h
 	//
 	// Use V constant for FT_LOAD_TARGET_LIGHT because the C macro is complex
 	// and not automatically exposed by V's C-interop.
-	target_flag := if renderer.lcd_mode { ft_load_target_lcd } else { ft_load_target_light }
+	target_flag := ft_load_target_light
 	flags := C.FT_LOAD_RENDER | C.FT_LOAD_COLOR | target_flag
 
 	if C.FT_Load_Glyph(ft_face, index, flags) != 0 {
@@ -83,17 +83,8 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32, target_h
 	bitmap := ft_bitmap_to_bitmap(&ft_bitmap, ft_face, target_height)!
 
 	return match int(ft_bitmap.pixel_mode) {
-		C.FT_PIXEL_MODE_BGRA {
-			renderer.atlas.insert_bitmap(bitmap, 0, bitmap.height)
-		}
-		C.FT_PIXEL_MODE_LCD {
-			// For LCD, the bitmap width is 3x the logical width, but we already fixed it in ft_bitmap_to_bitmap.
-			// However, FreeType's bitmap_left is correct for logical pixels.
-			renderer.atlas.insert_bitmap(bitmap, int(glyph.bitmap_left), int(glyph.bitmap_top))
-		}
-		else {
-			renderer.atlas.insert_bitmap(bitmap, int(glyph.bitmap_left), int(glyph.bitmap_top))
-		}
+		C.FT_PIXEL_MODE_BGRA { renderer.atlas.insert_bitmap(bitmap, 0, bitmap.height) }
+		else { renderer.atlas.insert_bitmap(bitmap, int(glyph.bitmap_left), int(glyph.bitmap_top)) }
 	}
 }
 
@@ -107,7 +98,6 @@ fn (mut renderer Renderer) load_glyph(ft_face &C.FT_FaceRec, index u32, target_h
 //   to full integer 0 or 255 alpha.
 // - **BGRA (Color Bitmap)**: Used for Emoji fonts (e.g., Apple Color Image).
 //   Preserves colors exactly.
-// - **LCD (Subpixel)**: RGB subpixels. Sets Alpha=255.
 //   Important: Scales bitmap if size doesn't match target PPEM (size).
 pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, target_height int) !Bitmap {
 	if bmp.buffer == 0 || bmp.width == 0 || bmp.rows == 0 {
@@ -116,14 +106,9 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, target_heigh
 
 	mut width := int(bmp.width)
 	mut height := int(bmp.rows)
-
-	if bmp.pixel_mode == u8(C.FT_PIXEL_MODE_LCD) {
-		width = width / 3
-	}
-
 	channels := 4
 	length := width * height * channels
-	mut data := []u8{len: length} // safe allocation
+	mut data := unsafe { bmp.buffer.vbytes(length).clone() }
 
 	match bmp.pixel_mode {
 		u8(C.FT_PIXEL_MODE_GRAY) {
@@ -177,6 +162,11 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, target_heigh
 				}
 			}
 
+			// Calculate target size (in pixels)
+			// Use explicitly requested target_height if available.
+			// Otherwise use metrics (though metrics are often untrustworthy
+			// for bitmap fonts like Noto Color Emoji which report native size).
+
 			y_ppem := int(ft_face.size.metrics.y_ppem)
 			ascender := int(ft_face.size.metrics.ascender) >> 6 // 26.6 fixed point to pixels
 
@@ -196,31 +186,6 @@ pub fn ft_bitmap_to_bitmap(bmp &C.FT_Bitmap, ft_face &C.FT_FaceRec, target_heigh
 				data = scale_bitmap_bicubic(data, width, height, new_w, new_h)
 				width = new_w
 				height = new_h
-			}
-		}
-		u8(C.FT_PIXEL_MODE_LCD) {
-			for y in 0 .. height {
-				row := match bmp.pitch >= 0 {
-					true { unsafe { bmp.buffer + y * bmp.pitch } }
-					else { unsafe { bmp.buffer + (height - 1 - y) * (-bmp.pitch) } }
-				}
-				for x in 0 .. width {
-					// Source is 3 bytes per pixel (RGB)
-					src := unsafe { row + x * 3 }
-					i := (y * width + x) * 4
-					r := unsafe { src[0] }
-					g := unsafe { src[1] }
-					b := unsafe { src[2] }
-					// Calculate alpha as average to support standard blending (grayscale fallback)
-					// This prevents "black rectangles" when using standard shaders.
-					// True subpixel rendering requires a custom shader to use the per-channel data.
-					avg := u8((int(r) + int(g) + int(b)) / 3)
-
-					data[i + 0] = r
-					data[i + 1] = g
-					data[i + 2] = b
-					data[i + 3] = avg
-				}
 			}
 		}
 		else {

@@ -163,18 +163,6 @@ fn C.FT_Get_Next_Char(&C.FT_FaceRec, u32, &u32) u32
 fn C.FT_Render_Glyph(&C.FT_GlyphSlotRec, i32) int
 
 pub const ft_render_mode_normal = 0
-pub const ft_render_mode_light = 1
-pub const ft_render_mode_mono = 2
-pub const ft_render_mode_lcd = 3
-pub const ft_render_mode_lcd_v = 4
-
-pub const ft_lcd_filter_none = 0
-pub const ft_lcd_filter_default = 1
-pub const ft_lcd_filter_light = 2
-pub const ft_lcd_filter_legacy1 = 3
-pub const ft_lcd_filter_legacy = 16
-
-fn C.FT_Library_SetLcdFilter(&C.FT_LibraryRec, i32) int
 
 // Pango & GObject & GLib
 #pkgconfig pango
