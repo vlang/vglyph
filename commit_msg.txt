@@ -1,0 +1,8 @@
+feat: Add explicit size field to TextConfig
+
+Adds a `size` (f32) field to `TextConfig` and `RichTextStyle` to specify font size in points, overriding the size in `font_name`.
+
+- Added `size` field to `TextConfig` and `RichTextStyle`.
+- Updated `context.v` and `layout.v` to apply the explicit size.
+- Updated API documentation.
+- Added `examples/size_test_demo.v`.

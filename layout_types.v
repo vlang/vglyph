@@ -105,9 +105,13 @@ pub:
 	// Example: "Sans Italic Light 15"
 	// Ref: https://docs.gtk.org/Pango/type_func.FontDescription.from_string.html
 	font_name string
-	width     int       = -1    // width is the wrapping width in pixels. Set to -1 or 0 for no wrapping.
-	align     Alignment = .left // align controls the horizontal alignment of the text (left, center, right).
-	wrap      WrapMode  = .word // wrap controls how text lines are broken (word, char, etc.).
+	// size overrides the size specified in font_name.
+	// It is specified in points (e.g. 12.0 for 12pt).
+	// If 0, the size from font_name (or default) is used.
+	size  f32
+	width int       = -1    // width is the wrapping width in pixels. Set to -1 or 0 for no wrapping.
+	align Alignment = .left // align controls the horizontal alignment of the text (left, center, right).
+	wrap  WrapMode  = .word // wrap controls how text lines are broken (word, char, etc.).
 	// use_markup enables Pango markup syntax.
 	//
 	// Supported tags:
@@ -142,8 +146,11 @@ pub:
 pub struct RichTextStyle {
 pub:
 	font_name string
-	color     gg.Color = gg.black
-	bg_color  gg.Color = gg.Color{0, 0, 0, 0}
+	// size overrides the size specified in font_name.
+	// It is specified in points.
+	size     f32
+	color    gg.Color = gg.black
+	bg_color gg.Color = gg.Color{0, 0, 0, 0}
 
 	// Decorations
 	underline     bool

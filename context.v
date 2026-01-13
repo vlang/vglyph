@@ -227,5 +227,12 @@ pub fn (mut ctx Context) create_font_description(cfg TextConfig) &C.PangoFontDes
 		C.pango_font_description_set_variations(desc, &char(axes_str.str))
 	}
 
+	// Apply Explicit Size (overrides size in font_name)
+	if cfg.size > 0 {
+		// pango_font_description_set_size takes Pango units (1/1024 of a point)
+		// We cast to int because pango_scale is 1024 (integer).
+		C.pango_font_description_set_size(desc, int(cfg.size * pango_scale))
+	}
+
 	return desc
 }

@@ -47,7 +47,7 @@ Professional engines position glyphs at fractional pixel coordinates (e.g., x=10
 
 Standard engines support "Attributed Strings"—single text buffers with multiple styles.
 
-### 2.1 Attributed String API
+### ~~2.1 Attributed String API~~
 **Priority:** High
 **Impact:** Essential for code editors, rich text documents, and complex UI.
 

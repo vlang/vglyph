@@ -640,19 +640,28 @@ fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style RichTextS
 	}
 
 	// 5. Font Description (Name, Size, Variations)
-	// Only set if font_name is defined.
-	if style.font_name != '' {
-		desc := C.pango_font_description_from_string(style.font_name.str)
+	// Set if font_name is defined OR size is defined.
+	if style.font_name != '' || style.size > 0 {
+		mut desc := unsafe { &C.PangoFontDescription(nil) }
+
+		if style.font_name != '' {
+			desc = C.pango_font_description_from_string(style.font_name.str)
+		} else {
+			desc = C.pango_font_description_new()
+		}
+
 		if desc != unsafe { nil } {
-			// Resolve aliases (important for 'System Font')
-			fam_ptr := C.pango_font_description_get_family(desc)
-			fam := if fam_ptr != unsafe { nil } {
-				unsafe { cstring_to_vstring(fam_ptr) }
-			} else {
-				''
+			if style.font_name != '' {
+				// Resolve aliases (important for 'System Font')
+				fam_ptr := C.pango_font_description_get_family(desc)
+				fam := if fam_ptr != unsafe { nil } {
+					unsafe { cstring_to_vstring(fam_ptr) }
+				} else {
+					''
+				}
+				resolved_fam := resolve_family_alias(fam)
+				C.pango_font_description_set_family(desc, resolved_fam.str)
 			}
-			resolved_fam := resolve_family_alias(fam)
-			C.pango_font_description_set_family(desc, resolved_fam.str)
 
 			// Apply Variations
 			if style.variation_axes.len > 0 {
@@ -666,6 +675,11 @@ fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style RichTextS
 					first = false
 				}
 				C.pango_font_description_set_variations(desc, &char(axes_str.str))
+			}
+
+			// Apply Explicit Size
+			if style.size > 0 {
+				C.pango_font_description_set_size(desc, int(style.size * pango_scale))
 			}
 
 			// Create attribute
