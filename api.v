@@ -13,11 +13,12 @@ mut:
 
 pub struct TextSystem {
 mut:
-	ctx          &Context
-	renderer     &Renderer
-	cache        map[u64]&CachedLayout
-	eviction_age i64 = 5000 // ms
-	am           &AccessibilityManager
+	ctx                   &Context
+	renderer              &Renderer
+	cache                 map[u64]&CachedLayout
+	eviction_age          i64 = 5000 // ms
+	am                    &AccessibilityManager
+	accessibility_enabled bool
 }
 
 // new_text_system creates a new TextSystem, initializing Pango context and
@@ -27,10 +28,11 @@ pub fn new_text_system(mut gg_ctx gg.Context) !&TextSystem {
 	tr_ctx := new_context(scale)!
 	renderer := new_renderer(mut gg_ctx, scale)
 	return &TextSystem{
-		ctx:      tr_ctx
-		renderer: renderer
-		cache:    map[u64]&CachedLayout{}
-		am:       new_accessibility_manager()
+		ctx:                   tr_ctx
+		renderer:              renderer
+		cache:                 map[u64]&CachedLayout{}
+		am:                    new_accessibility_manager()
+		accessibility_enabled: false
 	}
 }
 
@@ -59,6 +61,9 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 		}
 		item.last_access = time.ticks()
 		ts.renderer.draw_layout(item.layout, x, y)
+		if ts.accessibility_enabled {
+			ts.am.update_layout(item.layout, x, y)
+		}
 	} else {
 		// Cache miss
 		layout := ts.ctx.layout_text(text, cfg) or { return err }
@@ -67,6 +72,9 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 			last_access: time.ticks()
 		}
 		ts.renderer.draw_layout(layout, x, y)
+		if ts.accessibility_enabled {
+			ts.am.update_layout(layout, x, y)
+		}
 	}
 }
 
@@ -122,6 +130,9 @@ pub fn (mut ts TextSystem) font_height(cfg TextConfig) f32 {
 // commit should be called at the end of the frame to upload the texture atlas.
 pub fn (mut ts TextSystem) commit() {
 	ts.renderer.commit()
+	if ts.accessibility_enabled {
+		ts.am.commit()
+	}
 }
 
 pub fn (ts &TextSystem) get_atlas_image() gg.Image {
@@ -156,6 +167,15 @@ pub fn (mut ts TextSystem) layout_rich_text(rt RichText, cfg TextConfig) !Layout
 // draw_layout renders a pre-computed layout.
 pub fn (mut ts TextSystem) draw_layout(l Layout, x f32, y f32) {
 	ts.renderer.draw_layout(l, x, y)
+	if ts.accessibility_enabled {
+		ts.am.update_layout(l, x, y)
+	}
+}
+
+// enable_accessibility toggles automatic accessibility updates.
+// When enabled, draw_text and draw_layout will automatically update the accessibility tree.
+pub fn (mut ts TextSystem) enable_accessibility(enabled bool) {
+	ts.accessibility_enabled = enabled
 }
 
 // update_accessibility publishes the layout to the accessibility tree.

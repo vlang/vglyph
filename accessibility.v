@@ -23,23 +23,12 @@ pub fn new_accessibility_manager() &AccessibilityManager {
 
 // update_layout takes a Layout and converts it into accessibility nodes,
 // essentially "publishing" the visual structure to the screen reader.
+// This accumulates nodes for the current frame. Call commit() to push changes.
 pub fn (mut am AccessibilityManager) update_layout(l Layout, origin_x f32, origin_y f32) {
-	am.reset()
-
-	// Create Root Node (Window/Container)
-	am.root_id = am.next_node_id()
-	mut root := AccessibilityNode{
-		id:   am.root_id
-		role: .container
-		rect: gg.Rect{
-			x:      origin_x
-			y:      origin_y
-			width:  l.width
-			height: l.height
-		}
-		text: 'Text Content'
+	// Ensure root exists if first call in frame
+	if am.nodes.len == 0 {
+		am.reset()
 	}
-	am.nodes[am.root_id] = root
 
 	// Process Lines
 	for line in l.lines {
@@ -70,13 +59,38 @@ pub fn (mut am AccessibilityManager) update_layout(l Layout, origin_x f32, origi
 		parent_node.children << id
 		am.nodes[am.root_id] = parent_node
 	}
+}
 
+pub fn (mut am AccessibilityManager) commit() {
+	if am.nodes.len == 0 {
+		return
+	}
 	am.push_updates()
+	am.reset()
 }
 
 fn (mut am AccessibilityManager) reset() {
 	am.nodes.clear()
 	am.next_id = 1
+
+	// Create Root Node (Window/Container)
+	am.root_id = am.next_node_id()
+	mut root := AccessibilityNode{
+		id:   am.root_id
+		role: .container
+		// Root rect should ideally cover the window or be dynamic.
+		// For now, we leave it 0-sized or we might need to update it?
+		// The previous implementation set it based on the single layout.
+		// Now we have multiple layouts. Let's make it a generic container.
+		rect: gg.Rect{
+			x:      0
+			y:      0
+			width:  0 // TODO: Pass window size?
+			height: 0
+		}
+		text: 'Content'
+	}
+	am.nodes[am.root_id] = root
 }
 
 fn (mut am AccessibilityManager) next_node_id() int {

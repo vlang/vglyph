@@ -14,6 +14,7 @@ library.
 - [Renderer](#renderer-struct) - Low-level rendering engine.
 - [Font Management](#font-management)
 - [Rich Text API](#rich-text-api)
+- [Accessibility](#accessibility)
 
 ---
 
@@ -54,8 +55,8 @@ Loads a local font file (TTF/OTF) for use.
 ➡️ `fn (mut ts TextSystem) commit()`
 
 **CRITICAL**: Must be called once at the end of your frame (after all
-`draw_text` calls). Uploads the modified glyph atlas texture to the GPU. If
-omitted, new characters will appear as empty rectangles.
+`draw_text` calls). Uploads the modified glyph atlas texture to the GPU and
+pushes any pending accessibility updates to the screen reader.
 
 ➡️ `fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) !`
 
@@ -68,6 +69,17 @@ Renders text at the specified coordinates.
 - **Note**: This method checks the internal cache. If the layout exists, it
   draws immediately. If not, it performs shaping (expensive) and caches the
   result.
+  - **Accessibility**: If `enable_accessibility(true)` has been called, this
+  automatically adds the text to the accessibility tree.
+
+➡️ `fn (mut ts TextSystem) enable_accessibility(enabled bool)`
+
+Enables or disables automatic accessibility updates.
+
+- **Parameters**:
+    - `enabled`: If `true`, `draw_text` and `draw_layout` will automatically
+      publish their content to the accessibility tree.
+- **Default**: `false`.
 
 ➡️ `fn (mut ts TextSystem) font_height(cfg TextConfig) f32`
 
@@ -105,6 +117,16 @@ calculations (e.g., center alignment parent containers).
 Computes the layout for a `RichText` object. The `rt.runs` are concatenated to
 form the full text. `cfg` provides the base paragraph style (alignment, wrapping,
 default font).
+
+➡️ `fn (mut ts TextSystem) update_accessibility(l Layout, x f32, y f32)`
+
+Manually adds a layout to the accessibility tree for the current frame.
+
+- **Parameters**:
+    - `l`: The text layout to publish.
+    - `x`, `y`: Screen coordinates where the text is drawn.
+- **Usage**: Call this if you are using `draw_layout` manually and haven't
+  enabled automatic accessibility, or for custom controls.
 
 ---
 
@@ -266,3 +288,8 @@ Creates a renderer with default settings.
 
 For details on loading and using fonts, please refer to the
 [Guides](./GUIDES.md#font-management).
+
+## Accessibility
+
+For details on enabling and using accessibility features, please refer to the
+[Accessibility Guide](./ACCESSIBILITY.md).

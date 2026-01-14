@@ -17,6 +17,8 @@ complex scripts, and rich text markup—while remaining easy to use.
   `TextConfig`, etc.
 - [**Guides**](docs/GUIDES.md): Rich Text Markup, Font Loading, and Performance
   tips.
+- [**Accessibility**](docs/ACCESSIBILITY.md): Comprehensive guide to using
+  `vglyph` with screen readers.
 - [**Architecture**](docs/ARCHITECTURE.md): High-level design and data flow.
 
 
@@ -47,6 +49,8 @@ complex scripts, and rich text markup—while remaining easy to use.
   `font_height`) for precise layout calculations.
 - **Lists**: Built-in support for hanging indents to easily create unordered and
   ordered lists with custom markers.
+- **Accessibility**: Automatic integration with macOS VoiceOver (and future
+  screen readers) via a simple API switch.
 
 ## 📦 Prerequisites
 
