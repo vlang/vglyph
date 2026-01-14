@@ -104,6 +104,29 @@ app.ts.draw_text(x, y, icon_code, vglyph.TextConfig{
 
 ---
 
+## Units and Measurements
+
+### Points vs Pixels
+
+In `vglyph` (and digital typography in general), it is important to distinguish
+between **Points (pt)** and **Pixels (px)**.
+
+- **Points**: Used for font sizes. One typographic point is defined as **1/72 of
+  an inch**. When you specify a font size (e.g., in `font_name: 'Sans 12'` or
+  `size: 12.0`), you are requesting a height of 12 points (approx. 1/6 inch).
+
+- **Pixels**: Used for layout coordinates, widths, and positioning. In `vglyph`,
+  these refer to **Logical Pixels**, not physical hardware pixels. A logical
+  pixel is defined as **1/96 of an inch** (standard CSS reference pixel).
+
+This distinction ensures that text appears at a consistent physical size across
+different screens, regardless of the display's actual DPI (dots per inch).
+Hardware scaling (e.g., Retina displays) handles the mapping of logical pixels
+to physical device pixels automatically.
+
+---
+
+
 ## Advanced Typography
 
 ### Tab Stops
