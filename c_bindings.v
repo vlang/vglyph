@@ -554,6 +554,7 @@ pub enum PangoEllipsizeMode {
 // Pango Layout Configuration
 fn C.pango_layout_set_width(&C.PangoLayout, int)
 fn C.pango_layout_set_height(&C.PangoLayout, int)
+fn C.pango_layout_set_indent(&C.PangoLayout, int)
 fn C.pango_layout_set_alignment(&C.PangoLayout, PangoAlignment)
 fn C.pango_layout_set_wrap(&C.PangoLayout, PangoWrapMode)
 fn C.pango_layout_set_ellipsize(&C.PangoLayout, PangoEllipsizeMode)

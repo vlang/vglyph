@@ -149,6 +149,7 @@ Defines paragraph-level layout attributes.
 | `width` | `f32`       | `-1.0`  | Wrapping width in pixels. `-1` denotes no wrapping.  |
 | `align` | `Alignment` | `.left` | Horizontal alignment (`.left`, `.center`, `.right`). |
 | `wrap`  | `WrapMode`  | `.word` | Wrapping strategy (`.word`, `.char`, `.word_char`).  |
+| `indent`| `f32`       | `0.0`   | Indentation of first line (neg for hanging).         |
 | `tabs`  | `[]int`     | `[]`    | Custom tab stops in pixels.                          |
 
 ## Rich Text API

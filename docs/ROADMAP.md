@@ -63,7 +63,7 @@ Standard engines support "Attributed Strings"—single text buffers with multipl
     - Refactor `Context.layout_text` to accept this structure.
     - Allows programmatic toggling of bold/color ranges without string operations.
 
-### 2.2 Block Styles
+### ~~2.2 Block Styles~~
 **Priority:** Medium
 **Impact:** Required for document editors.
 

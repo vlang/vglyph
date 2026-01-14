@@ -183,6 +183,9 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		.right { PangoAlignment.pango_align_right }
 	}
 	C.pango_layout_set_alignment(layout, pango_align)
+	if cfg.block.indent != 0 {
+		C.pango_layout_set_indent(layout, int(cfg.block.indent * pango_scale))
+	}
 
 	desc := ctx.create_font_description(cfg.style)
 	if desc != unsafe { nil } {

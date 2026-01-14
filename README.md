@@ -45,6 +45,8 @@ complex scripts, and rich text markup—while remaining easy to use.
   (`wdth`) for fluid typography animations.
 - **Text Measurement**: Query text dimensions (`text_width`, `text_height`,
   `font_height`) for precise layout calculations.
+- **Lists**: Built-in support for hanging indents to easily create unordered and
+  ordered lists with custom markers.
 
 ## 📦 Prerequisites
 
@@ -133,6 +135,7 @@ The `examples/` directory contains several demonstrations:
 - **`editor_demo.v`** - Interactive text editing with cursor placement
 - **`typography_demo.v`** - OpenType features and custom tab stops
 - **`variable_font_demo.v`** - Variable font animation (weight/width axes)
+- **`list_demo.v`** - Unordered and ordered lists with hanging indents
 - **`stress_demo.v`** - Performance testing with thousands of glyphs
 
 Run any example with:

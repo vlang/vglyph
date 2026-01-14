@@ -95,7 +95,10 @@ pub:
 	align Alignment = .left
 	wrap  WrapMode  = .word
 	width f32       = -1.0
-	tabs  []int
+	// indent determines the indentation of the first line.
+	// Negative values create a hanging indent (lines 2+ are indented).
+	indent f32
+	tabs   []int
 }
 
 // TextStyle represents the visual style of a run of text.
