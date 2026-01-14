@@ -6,6 +6,7 @@ fn test_get_cache_key_consistency() {
 	ts := TextSystem{
 		ctx:      unsafe { nil }
 		renderer: unsafe { nil }
+		am:       unsafe { nil }
 	}
 
 	cfg1 := TextConfig{
@@ -30,6 +31,7 @@ fn test_get_cache_key_diff() {
 	ts := TextSystem{
 		ctx:      unsafe { nil }
 		renderer: unsafe { nil }
+		am:       unsafe { nil }
 	}
 
 	cfg1 := TextConfig{
@@ -64,6 +66,7 @@ fn test_get_cache_key_diff_text() {
 	ts := TextSystem{
 		ctx:      unsafe { nil }
 		renderer: unsafe { nil }
+		am:       unsafe { nil }
 	}
 	cfg1 := TextConfig{
 		style: TextStyle{
