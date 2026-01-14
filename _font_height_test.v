@@ -9,7 +9,9 @@ fn test_font_height_sanity() {
 
 	// Test with a standard font
 	cfg := TextConfig{
-		font_name: 'Sans 20'
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
 	}
 
 	height := ctx.font_height(cfg)
@@ -27,7 +29,9 @@ fn test_font_height_pixels() {
 
 	// Test with pixel size
 	cfg := TextConfig{
-		font_name: 'Sans 20px'
+		style: TextStyle{
+			font_name: 'Sans 20px'
+		}
 	}
 
 	height := ctx.font_height(cfg)

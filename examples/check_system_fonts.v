@@ -95,16 +95,22 @@ fn frame(mut app AppSystemFonts) {
 
 	// Header
 	app.text_sys.draw_text(x_col1, y, 'Requested Font', vglyph.TextConfig{
-		font_name: 'Menlo Bold 14'
-		color:     smoke
+		style: vglyph.TextStyle{
+			font_name: 'Menlo Bold 14'
+			color:     smoke
+		}
 	}) or {}
 	app.text_sys.draw_text(x_col2, y, 'Resolved To', vglyph.TextConfig{
-		font_name: 'Menlo Bold 14'
-		color:     smoke
+		style: vglyph.TextStyle{
+			font_name: 'Menlo Bold 14'
+			color:     smoke
+		}
 	}) or {}
 	app.text_sys.draw_text(x_col3, y, 'Sample Text', vglyph.TextConfig{
-		font_name: 'Menlo Bold 14'
-		color:     smoke
+		style: vglyph.TextStyle{
+			font_name: 'Menlo Bold 14'
+			color:     smoke
+		}
 	}) or {}
 	y += 30
 
@@ -114,22 +120,28 @@ fn frame(mut app AppSystemFonts) {
 
 		// Column 1: Requested Name
 		app.text_sys.draw_text(x_col1, y, '${res.request} (${status})', vglyph.TextConfig{
-			font_name: 'Menlo 12'
-			color:     color
+			style: vglyph.TextStyle{
+				font_name: 'Menlo 12'
+				color:     color
+			}
 		}) or {}
 
 		// Column 2: Resolved Name
 		app.text_sys.draw_text(x_col2, y, res.resolved, vglyph.TextConfig{
-			font_name: 'Menlo 12'
-			color:     smoke
+			style: vglyph.TextStyle{
+				font_name: 'Menlo 12'
+				color:     smoke
+			}
 		}) or {}
 
 		// Column 3: Sample Text in the requested font
 		// Ensure we don't crash if the font is totally bogus, Pango handles fallback.
 		app.text_sys.draw_text(x_col3, y, 'The quick brown fox jumps over the lazy dog.',
 			vglyph.TextConfig{
-			font_name: '${res.request} 14'
-			color:     smoke
+			style: vglyph.TextStyle{
+				font_name: '${res.request} 14'
+				color:     smoke
+			}
 		}) or {}
 
 		y += 35

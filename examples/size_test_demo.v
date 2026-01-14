@@ -8,16 +8,20 @@ fn check_font_size_override() {
 
 	// Case 1: Standard size in font name
 	cfg_small := vglyph.TextConfig{
-		font_name: 'Sans 10'
-		size:      0 // Should use 10
+		style: vglyph.TextStyle{
+			font_name: 'Sans 10'
+			size:      0
+		}
 	}
 	height_small := ctx.font_height(cfg_small)
 	println('Height Small (10pt): ${height_small}')
 
 	// Case 2: Size in font name overridden by size field
 	cfg_large := vglyph.TextConfig{
-		font_name: 'Sans 10'
-		size:      20.0 // Should override to 20
+		style: vglyph.TextStyle{
+			font_name: 'Sans 10'
+			size:      20.0
+		}
 	}
 	height_large := ctx.font_height(cfg_large)
 	println('Height Large (20pt): ${height_large}')
@@ -30,8 +34,10 @@ fn check_font_size_override() {
 
 	// Case 3: Fractional size
 	cfg_fractional := vglyph.TextConfig{
-		font_name: 'Sans 10'
-		size:      15.5
+		style: vglyph.TextStyle{
+			font_name: 'Sans 10'
+			size:      15.5
+		}
 	}
 	height_fractional := ctx.font_height(cfg_fractional)
 	println('Height Fractional (15.5pt): ${height_fractional}')
@@ -51,29 +57,31 @@ fn check_layout_rich_text_size() {
 		runs: [
 			vglyph.StyleRun{
 				text:  'Small '
-				style: vglyph.RichTextStyle{
+				style: vglyph.TextStyle{
 					font_name: 'Sans 10'
 				}
 			},
 			vglyph.StyleRun{
 				text:  'Large '
-				style: vglyph.RichTextStyle{
+				style: vglyph.TextStyle{
 					font_name: 'Sans 10'
 					size:      30.0
 				}
 			},
 			vglyph.StyleRun{
 				text:  'Default '
-				style: vglyph.RichTextStyle{
+				style: vglyph.TextStyle{
 					size: 20.0
 				}
 			},
 		]
 	}
 
-	layout := ctx.layout_rich_text(text, vglyph.TextConfig{ font_name: 'Sans 12' }) or {
-		panic(err)
-	}
+	layout := ctx.layout_rich_text(text, vglyph.TextConfig{
+		style: vglyph.TextStyle{
+			font_name: 'Sans 12'
+		}
+	}) or { panic(err) }
 
 	println('Checking layout items...')
 	for i, item in layout.items {

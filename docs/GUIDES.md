@@ -16,7 +16,9 @@ engine will return an error.
 
 ```okfmt
 config := vglyph.TextConfig{
-    font_name: 'Sans 16',
+    style: vglyph.TextStyle{
+        font_name: 'Sans 16',
+    },
     use_markup: true
 }
 
@@ -76,7 +78,9 @@ fonts with your game or app.
 
    ```okfmt
    cfg := vglyph.TextConfig{
-       font_name: 'Inter 14' // "Inter" is the family name
+       style: vglyph.TextStyle{
+           font_name: 'Inter 14' // "Inter" is the family name
+       }
    }
    ```
 
@@ -92,7 +96,9 @@ Icon fonts (like FontAwesome or Feather) work just like regular fonts.
 icon_code := '\uF120'
 
 app.ts.draw_text(x, y, icon_code, vglyph.TextConfig{
-    font_name: 'Feather 24'
+    style: vglyph.TextStyle{
+        font_name: 'Feather 24'
+    }
 })
 ```
 
@@ -108,9 +114,13 @@ perfectly aligned tables.
 
 ```okfmt
 cfg := vglyph.TextConfig{
-    font_name: 'Mono 16',
+    style: vglyph.TextStyle{
+        font_name: 'Mono 16'
+    },
     // Align columns at 100px and 250px
-    tabs: [100, 250]
+    block: vglyph.BlockStyle{
+        tabs: [100, 250]
+    }
 }
 
 // "Name" starts at 0, "Age" aligns to 100px, "Role" aligns to 250px
@@ -132,10 +142,12 @@ Common Features:
 
 ```okfmt
 cfg := vglyph.TextConfig{
-    font_name: 'Serif 18',
-    opentype_features: {
-        'smcp': 1, // Enable small caps
-        'onum': 1  // Enable old-style figures
+    style: vglyph.TextStyle{
+        font_name: 'Serif 18',
+        opentype_features: {
+            'smcp': 1, // Enable small caps
+            'onum': 1  // Enable old-style figures
+        }
     }
 }
 

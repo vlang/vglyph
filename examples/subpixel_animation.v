@@ -54,8 +54,10 @@ fn (mut app SubpixelApp) draw() {
 
 	// 1. Subpixel Positioned (Smooth)
 	cfg := vglyph.TextConfig{
-		font_name: 'Sans 24'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 24'
+			color:     gg.black
+		}
 	}
 	text := 'Smooth Subpixel Motion'
 	layout := app.text_system.layout_text(text, cfg) or { panic(err) }
@@ -71,8 +73,10 @@ fn (mut app SubpixelApp) draw() {
 
 	// Instructions
 	info_cfg := vglyph.TextConfig{
-		font_name: 'Sans 14'
-		color:     gg.gray
+		style: vglyph.TextStyle{
+			font_name: 'Sans 14'
+			color:     gg.gray
+		}
 	}
 	info_layout := app.text_system.layout_text('Top: Subpixel (Should be smooth). Bottom: Integer (Should jitter).',
 		info_cfg) or { panic(err) }

@@ -40,8 +40,10 @@ fn frame(mut app RichTextApp) {
 	app.gg.begin()
 
 	base_cfg := vglyph.TextConfig{
-		font_name: 'Sans 20'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+			color:     gg.black
+		}
 	}
 
 	// 1. Simple Rich Text
@@ -59,7 +61,7 @@ fn frame(mut app RichTextApp) {
 		},
 		vglyph.StyleRun{
 			text:  'RichText'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				font_name: 'Sans Bold 20'
 				color:     gg.blue
 			}
@@ -69,7 +71,7 @@ fn frame(mut app RichTextApp) {
 		},
 		vglyph.StyleRun{
 			text:  'bold'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				font_name: 'Sans Bold 20'
 			}
 		},
@@ -78,7 +80,7 @@ fn frame(mut app RichTextApp) {
 		},
 		vglyph.StyleRun{
 			text:  'red'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				color: gg.red
 			}
 		},
@@ -98,7 +100,7 @@ fn frame(mut app RichTextApp) {
 	runs2 := [
 		vglyph.StyleRun{
 			text:  'Underline'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				underline: true
 				color:     gg.hex(0x008800)
 			}
@@ -108,7 +110,7 @@ fn frame(mut app RichTextApp) {
 		},
 		vglyph.StyleRun{
 			text:  'Strikethrough'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				strikethrough: true
 				color:         gg.hex(0x880000)
 			}
@@ -118,7 +120,7 @@ fn frame(mut app RichTextApp) {
 		},
 		vglyph.StyleRun{
 			text:  'Variable Weight'
-			style: vglyph.RichTextStyle{
+			style: vglyph.TextStyle{
 				font_name:      'Sans 20'
 				variation_axes: {
 					'wght': f32(900.0)

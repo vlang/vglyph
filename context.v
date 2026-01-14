@@ -90,7 +90,7 @@ pub fn (mut ctx Context) add_font_file(path string) bool {
 // font_height returns the total visual height (ascent + descent) of the font
 // described by cfg.
 pub fn (mut ctx Context) font_height(cfg TextConfig) f32 {
-	desc := ctx.create_font_description(cfg)
+	desc := ctx.create_font_description(cfg.style)
 	if desc == unsafe { nil } {
 		log.error('${@FILE_LINE}: Failed to create Pango Font Description')
 		return 0
@@ -198,11 +198,11 @@ fn resolve_family_alias(fam string) string {
 }
 
 // create_font_description helper function to create and configure a PangoFontDescription
-// based on the provided TextConfig. It handles font name parsing, alias resolution,
+// based on the provided TextStyle. It handles font name parsing, alias resolution,
 // and variable font axes.
 // Caller is responsible for freeing the returned description with pango_font_description_free.
-pub fn (mut ctx Context) create_font_description(cfg TextConfig) &C.PangoFontDescription {
-	desc := C.pango_font_description_from_string(cfg.font_name.str)
+pub fn (mut ctx Context) create_font_description(style TextStyle) &C.PangoFontDescription {
+	desc := C.pango_font_description_from_string(style.font_name.str)
 	if desc == unsafe { nil } {
 		return unsafe { &C.PangoFontDescription(nil) }
 	}
@@ -214,10 +214,10 @@ pub fn (mut ctx Context) create_font_description(cfg TextConfig) &C.PangoFontDes
 	C.pango_font_description_set_family(desc, resolved_fam.str)
 
 	// Apply variable font axes
-	if cfg.variation_axes.len > 0 {
+	if style.variation_axes.len > 0 {
 		mut axes_str := ''
 		mut first := true
-		for k, v in cfg.variation_axes {
+		for k, v in style.variation_axes {
 			if !first {
 				axes_str += ','
 			}
@@ -228,10 +228,10 @@ pub fn (mut ctx Context) create_font_description(cfg TextConfig) &C.PangoFontDes
 	}
 
 	// Apply Explicit Size (overrides size in font_name)
-	if cfg.size > 0 {
+	if style.size > 0 {
 		// pango_font_description_set_size takes Pango units (1/1024 of a point)
 		// We cast to int because pango_scale is 1024 (integer).
-		C.pango_font_description_set_size(desc, int(cfg.size * pango_scale))
+		C.pango_font_description_set_size(desc, int(style.size * pango_scale))
 	}
 
 	return desc

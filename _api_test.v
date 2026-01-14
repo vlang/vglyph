@@ -9,10 +9,14 @@ fn test_get_cache_key_consistency() {
 	}
 
 	cfg1 := TextConfig{
-		font_name: 'Arial 12'
-		width:     100
-		align:     .left
-		color:     gg.black
+		style: TextStyle{
+			font_name: 'Arial 12'
+			color:     gg.black
+		}
+		block: BlockStyle{
+			width: 100
+			align: .left
+		}
 	}
 
 	key1 := ts.get_cache_key('hello', cfg1)
@@ -29,17 +33,25 @@ fn test_get_cache_key_diff() {
 	}
 
 	cfg1 := TextConfig{
-		font_name: 'Arial 12'
-		width:     100
-		align:     .left
-		color:     gg.black
+		style: TextStyle{
+			font_name: 'Arial 12'
+			color:     gg.black
+		}
+		block: BlockStyle{
+			width: 100
+			align: .left
+		}
 	}
 
 	cfg2 := TextConfig{
-		font_name: 'Arial 12'
-		width:     101 // changed
-		align:     .left
-		color:     gg.black
+		style: TextStyle{
+			font_name: 'Arial 12'
+			color:     gg.black
+		}
+		block: BlockStyle{
+			width: 101 // changed
+			align: .left
+		}
 	}
 
 	key1 := ts.get_cache_key('hello', cfg1)
@@ -54,7 +66,9 @@ fn test_get_cache_key_diff_text() {
 		renderer: unsafe { nil }
 	}
 	cfg1 := TextConfig{
-		font_name: 'Arial 12'
+		style: TextStyle{
+			font_name: 'Arial 12'
+		}
 	}
 
 	key1 := ts.get_cache_key('hello', cfg1)

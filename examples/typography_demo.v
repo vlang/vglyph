@@ -47,9 +47,13 @@ fn init(mut app TypographyApp) {
 	// app.ts.add_font_file('assets/FiraCode-Regular.ttf') // Example
 
 	app.cfg_code = vglyph.TextConfig{
-		font_name: 'Mono 16'
-		color:     gg.black
-		tabs:      [100, 300, 400, 500] // Pixel offsets
+		style: vglyph.TextStyle{
+			font_name: 'Mono 16'
+			color:     gg.black
+		}
+		block: vglyph.BlockStyle{
+			tabs: [100, 300, 400, 500]
+		}
 	}
 
 	mut features := map[string]int{}
@@ -58,9 +62,11 @@ fn init(mut app TypographyApp) {
 	features['frac'] = 1 // Fractions
 
 	app.cfg_lig = vglyph.TextConfig{
-		font_name:         'Sans 20' // System sans usually has some ligatures, or load FiraCode/Inter
-		color:             gg.hex(0x333333)
-		opentype_features: features
+		style: vglyph.TextStyle{
+			font_name:         'Sans 20' // System sans usually has some ligatures, or load FiraCode/Inter
+			color:             gg.hex(0x333333)
+			opentype_features: features
+		}
 	}
 }
 
@@ -85,15 +91,19 @@ fn frame(mut app TypographyApp) {
 
 	// Draw Code Block (Tabs)
 	app.ts.draw_text(50, 50, 'Tabular Data (Custom Tab Stops):', vglyph.TextConfig{
-		font_name: 'Sans Bold 14'
-		color:     gg.gray
+		style: vglyph.TextStyle{
+			font_name: 'Sans Bold 14'
+			color:     gg.gray
+		}
 	}) or {}
 	app.ts.draw_text(50, 80, app.text_code, app.cfg_code) or { println(err) }
 
 	// Draw Ligature Block
 	app.ts.draw_text(50, 270, 'OpenType Features (Ligatures/Fractions):', vglyph.TextConfig{
-		font_name: 'Sans Bold 14'
-		color:     gg.gray
+		style: vglyph.TextStyle{
+			font_name: 'Sans Bold 14'
+			color:     gg.gray
+		}
 	}) or {}
 	app.ts.draw_text(50, 300, app.text_lig, app.cfg_lig) or { println(err) }
 

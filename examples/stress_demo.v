@@ -19,8 +19,10 @@ fn frame(mut app AppStress) {
 	app.ctx.draw_rect_empty(0, 0, 0, 0, gg.white) // Dummy call to reset state if needed? Not really needed in gg usually.
 
 	cfg := vglyph.TextConfig{
-		font_name: 'Sans 20'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+			color:     gg.black
+		}
 	}
 
 	cols := 20
@@ -73,14 +75,18 @@ fn frame(mut app AppStress) {
 
 	// Performance info
 	app.ts.draw_text(10, 10, 'FPS: ${app.ctx.frame}', vglyph.TextConfig{
-		font_name: 'Sans 20'
-		color:     gg.red
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+			color:     gg.red
+		}
 	}) or {}
 
 	app.ts.draw_text(10, 40, 'Scroll: ${int(app.scroll_y)} / ${int(app.max_scroll)}',
 		vglyph.TextConfig{
-		font_name: 'Sans 20'
-		color:     gg.blue
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+			color:     gg.blue
+		}
 	}) or {}
 
 	app.ts.commit()

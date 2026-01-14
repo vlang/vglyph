@@ -50,20 +50,26 @@ fn frame(mut app EmojiApp) {
 
 	// Large Text
 	app.ts.draw_text(50, 50, 'Hello 🍎 World 🚀', vglyph.TextConfig{
-		font_name: 'Sans 32'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 32'
+			color:     gg.black
+		}
 	}) or { panic(err) }
 
 	// Medium Text
 	app.ts.draw_text(50, 120, 'Text logic: ⚛️ + ⚡ = 🔥', vglyph.TextConfig{
-		font_name: 'Sans 24'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 24'
+			color:     gg.black
+		}
 	}) or { panic(err) }
 
 	// Small Text
 	app.ts.draw_text(50, 180, 'Small emojis: 🐜🍎🍎🍎🍎', vglyph.TextConfig{
-		font_name: 'Sans 16'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans 16'
+			color:     gg.black
+		}
 	}) or { panic(err) }
 
 	// Baseline Reference Lines

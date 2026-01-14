@@ -53,8 +53,10 @@ fn (mut app VariableFontApp) draw() {
 
 	// Title
 	title_cfg := vglyph.TextConfig{
-		font_name: '24'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: '24'
+			color:     gg.black
+		}
 	}
 	title_layout := app.text_system.layout_text('Variable Font Support', title_cfg) or {
 		panic(err)
@@ -68,13 +70,17 @@ fn (mut app VariableFontApp) draw() {
 
 	// Variable Text
 	var_cfg := vglyph.TextConfig{
-		font_name:      'Roboto Flex 60' // Use the specific family name if loaded, or try generic
-		color:          gg.black
-		align:          .center
-		width:          700
-		variation_axes: {
-			'wght': f32(weight)
-			'wdth': f32(width)
+		style: vglyph.TextStyle{
+			font_name:      'Roboto Flex 60'
+			color:          gg.black
+			variation_axes: {
+				'wght': f32(weight)
+				'wdth': f32(width)
+			}
+		}
+		block: vglyph.BlockStyle{
+			align: .center
+			width: 700
 		}
 	}
 
@@ -86,8 +92,10 @@ fn (mut app VariableFontApp) draw() {
 
 	// Info Text
 	info_cfg := vglyph.TextConfig{
-		font_name: 'Mono 16'
-		color:     gg.gray
+		style: vglyph.TextStyle{
+			font_name: 'Mono 16'
+			color:     gg.gray
+		}
 	}
 	info_text := 'Axis Values:\nwght: ${weight_disp}\nwdth: ${width_disp}'
 	info_layout := app.text_system.layout_text(info_text, info_cfg) or { panic(err) }

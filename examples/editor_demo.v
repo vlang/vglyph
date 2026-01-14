@@ -46,10 +46,14 @@ fn init(mut app EditorApp) {
 	app.ts = vglyph.new_text_system(mut app.gg) or { panic(err) }
 
 	app.cfg = vglyph.TextConfig{
-		font_name: 'Sans 16'
-		color:     gg.black
-		width:     600
-		wrap:      .word
+		style: vglyph.TextStyle{
+			font_name: 'Sans 16'
+			color:     gg.black
+		}
+		block: vglyph.BlockStyle{
+			width: 600
+			wrap:  .word
+		}
 	}
 
 	// Perform initial layout

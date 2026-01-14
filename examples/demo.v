@@ -45,19 +45,25 @@ fn init(mut app AppDemo) {
 	// We just ask for a base font and size.
 	// Ensure you have fonts installed that cover these scripts (e.g. Noto Sans).
 	text := 'Hello السلام Verden 🌍 9局て脂済事つまきな政98院 Здравей'
-	app.layouts << app.tr_ctx.layout_text(text, vglyph.TextConfig{ font_name: 'Sans 20' }) or {
-		panic(err.msg())
-	}
+	app.layouts << app.tr_ctx.layout_text(text, vglyph.TextConfig{
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+		}
+	}) or { panic(err.msg()) }
 
 	french := "Voix ambiguë d'un cœur qui, au zéphyr, préfère les jattes de kiwis."
-	app.layouts << app.tr_ctx.layout_text(french, vglyph.TextConfig{ font_name: 'Serif 20' }) or {
-		panic(err.msg())
-	}
+	app.layouts << app.tr_ctx.layout_text(french, vglyph.TextConfig{
+		style: vglyph.TextStyle{
+			font_name: 'Serif 20'
+		}
+	}) or { panic(err.msg()) }
 
 	korean := '오늘 외출할 거예요. 일요일 아홉시 반 아침이에요. 지금 막 일어났어요.'
-	app.layouts << app.tr_ctx.layout_text(korean, vglyph.TextConfig{ font_name: 'Sans 20' }) or {
-		panic(err.msg())
-	}
+	app.layouts << app.tr_ctx.layout_text(korean, vglyph.TextConfig{
+		style: vglyph.TextStyle{
+			font_name: 'Sans 20'
+		}
+	}) or { panic(err.msg()) }
 
 	// Demonstrate wrapping
 	long_text :=
@@ -66,9 +72,13 @@ fn init(mut app AppDemo) {
 		'This ensures that our UI elements rendered with this engine can accommodate variable length content gracefully.'
 
 	app.layouts << app.tr_ctx.layout_text(long_text, vglyph.TextConfig{
-		font_name: 'Sans 16'
-		width:     400
-		align:     .center
+		style: vglyph.TextStyle{
+			font_name: 'Sans 16'
+		}
+		block: vglyph.BlockStyle{
+			width: 400
+			align: .center
+		}
 	}) or { panic(err.msg()) }
 
 	// Demonstrate Rich Text (Markup)
@@ -76,10 +86,14 @@ fn init(mut app AppDemo) {
 		'<span foreground="blue" size="x-large">Large blue text</span> <u>underline</u> ' +
 		'<b>bold text</b> <span background="blue">highlighter</span> <i>italics</i> <s>strikethrough</s>'
 	app.layouts << app.tr_ctx.layout_text(markup_text, vglyph.TextConfig{
-		font_name:  'Sans 20'
+		style:      vglyph.TextStyle{
+			font_name: 'Sans 20'
+		}
 		use_markup: true
-		width:      800
-		align:      .left
+		block:      vglyph.BlockStyle{
+			width: 800
+			align: .left
+		}
 	}) or { panic(err.msg()) }
 
 	scale := sapp.dpi_scale()

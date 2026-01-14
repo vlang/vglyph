@@ -9,9 +9,13 @@ fn test_text_height_no_draw() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 30'
-		width:     -1
-		align:     .left
+		style: TextStyle{
+			font_name: 'Sans 30'
+		}
+		block: BlockStyle{
+			width: -1
+			align: .left
+		}
 	}
 
 	text := 'Hello'

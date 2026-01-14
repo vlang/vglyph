@@ -14,8 +14,10 @@ fn frame(mut app AppIconGrid) {
 	app.ctx.draw_rect_filled(0, 0, 800, 600, gg.white)
 
 	cfg := vglyph.TextConfig{
-		font_name: 'feathericon 24'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'feathericon 24'
+			color:     gg.black
+		}
 	}
 
 	// Draw a grid of icons from the PUA range

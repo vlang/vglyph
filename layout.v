@@ -50,7 +50,7 @@ pub fn (mut ctx Context) layout_rich_text(rt RichText, cfg TextConfig) !Layout {
 	struct RunRange {
 		start int
 		end   int
-		style RichTextStyle
+		style TextStyle
 	}
 
 	mut valid_runs := []RunRange{cap: rt.runs.len}
@@ -168,23 +168,23 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 	}
 
 	// Apply layout configuration
-	if cfg.width > 0 {
-		C.pango_layout_set_width(layout, int(cfg.width * pango_scale))
-		pango_wrap := match cfg.wrap {
+	if cfg.block.width > 0 {
+		C.pango_layout_set_width(layout, int(cfg.block.width * pango_scale))
+		pango_wrap := match cfg.block.wrap {
 			.word { PangoWrapMode.pango_wrap_word }
 			.char { PangoWrapMode.pango_wrap_char }
 			.word_char { PangoWrapMode.pango_wrap_word_char }
 		}
 		C.pango_layout_set_wrap(layout, pango_wrap)
 	}
-	pango_align := match cfg.align {
+	pango_align := match cfg.block.align {
 		.left { PangoAlignment.pango_align_left }
 		.center { PangoAlignment.pango_align_center }
 		.right { PangoAlignment.pango_align_right }
 	}
 	C.pango_layout_set_alignment(layout, pango_align)
 
-	desc := ctx.create_font_description(cfg)
+	desc := ctx.create_font_description(cfg.style)
 	if desc != unsafe { nil } {
 		C.pango_layout_set_font_description(layout, desc)
 		C.pango_font_description_free(desc)
@@ -207,8 +207,8 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		// Apply cfg.color unless markup overrides it (markup wins by default).
 		if !cfg.use_markup {
 			// Pango uses 16-bit colors (0-65535)
-			mut fg_attr := C.pango_attr_foreground_new(u16(cfg.color.r) << 8, u16(cfg.color.g) << 8,
-				u16(cfg.color.b) << 8)
+			mut fg_attr := C.pango_attr_foreground_new(u16(cfg.style.color.r) << 8, u16(cfg.style.color.g) << 8,
+				u16(cfg.style.color.b) << 8)
 			// Range covers entire text
 			fg_attr.start_index = 0
 			fg_attr.end_index = u32(C.G_MAXUINT)
@@ -216,16 +216,16 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		}
 
 		// Background Color
-		if cfg.bg_color.a > 0 {
-			mut bg_attr := C.pango_attr_background_new(u16(cfg.bg_color.r) << 8, u16(cfg.bg_color.g) << 8,
-				u16(cfg.bg_color.b) << 8)
+		if cfg.style.bg_color.a > 0 {
+			mut bg_attr := C.pango_attr_background_new(u16(cfg.style.bg_color.r) << 8,
+				u16(cfg.style.bg_color.g) << 8, u16(cfg.style.bg_color.b) << 8)
 			bg_attr.start_index = 0
 			bg_attr.end_index = u32(C.G_MAXUINT)
 			C.pango_attr_list_insert(attr_list, bg_attr)
 		}
 
 		// Underline
-		if cfg.underline {
+		if cfg.style.underline {
 			mut u_attr := C.pango_attr_underline_new(.pango_underline_single)
 			u_attr.start_index = 0
 			u_attr.end_index = u32(C.G_MAXUINT)
@@ -233,7 +233,7 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		}
 
 		// Strikethrough
-		if cfg.strikethrough {
+		if cfg.style.strikethrough {
 			mut s_attr := C.pango_attr_strikethrough_new(true)
 			s_attr.start_index = 0
 			s_attr.end_index = u32(C.G_MAXUINT)
@@ -241,10 +241,10 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		}
 
 		// OpenType Features
-		if cfg.opentype_features.len > 0 {
+		if cfg.style.opentype_features.len > 0 {
 			mut features_str := ''
 			mut first := true
-			for k, v in cfg.opentype_features {
+			for k, v in cfg.style.opentype_features {
 				if !first {
 					features_str += ', '
 				}
@@ -262,9 +262,9 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 	}
 
 	// Apply Tabs
-	if cfg.tabs.len > 0 {
-		tab_array := C.pango_tab_array_new(cfg.tabs.len, 0)
-		for i, pos_px in cfg.tabs {
+	if cfg.block.tabs.len > 0 {
+		tab_array := C.pango_tab_array_new(cfg.block.tabs.len, 0)
+		for i, pos_px in cfg.block.tabs {
 			// Pango tabs are in Pango units
 			pos_pango := int(pos_px * pango_scale)
 			C.pango_tab_array_set_tab(tab_array, i, .pango_tab_left, pos_pango)
@@ -604,7 +604,7 @@ fn compute_lines(layout &C.PangoLayout, iter &C.PangoLayoutIter, scale_factor f3
 	return lines
 }
 
-fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style RichTextStyle, start int, end int) {
+fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style TextStyle, start int, end int) {
 	// 1. Color
 	if style.color.a > 0 {
 		mut attr := C.pango_attr_foreground_new(u16(style.color.r) << 8, u16(style.color.g) << 8,

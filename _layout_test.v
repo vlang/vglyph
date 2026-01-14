@@ -8,8 +8,6 @@ fn test_context_creation() {
 		assert false, 'Failed to create context: ${err}'
 		return
 	}
-	// Verify pointers are not null (checking for non-nil in V is a bit implicit if they are references,
-	// but new_context returns an error if they are null, so success implies they are valid).
 	ctx.free()
 }
 
@@ -19,9 +17,13 @@ fn test_layout_simple_text() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 20'
-		width:     -1
-		align:     .left
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
+		block: BlockStyle{
+			width: -1
+			align: .left
+		}
 	}
 
 	layout := ctx.layout_text('Hello World', cfg)!
@@ -44,7 +46,9 @@ fn test_layout_empty_text() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 20'
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
 	}
 
 	layout := ctx.layout_text('', cfg)!
@@ -59,22 +63,17 @@ fn test_layout_wrapping() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 20'
-		width:     50 // Very small width to force wrapping
-		wrap:      .word
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
+		block: BlockStyle{
+			width: 50
+			wrap:  .word
+		}
 	}
 
 	text := 'This is a long text that should wrap'
 	layout := ctx.layout_text(text, cfg)!
-
-	// If it wrapped, we should likely see multiple items (runs) or at least
-	// the total height should be significant.
-	// Pango often returns one run per line if attributes are same, OR multiple runs.
-	// Let's check if we have multiple items or if the visual height is > single line height.
-
-	// Actually, `layout_text` flattens the iterator. Only line breaks or attribute changes split runs?
-	// PangoLayoutIter iterates runs. A wrapped line is a new run?
-	// Usually yes.
 
 	assert layout.items.len > 1
 }
@@ -85,16 +84,18 @@ fn test_hit_test() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 20'
-		width:     -1
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
+		block: BlockStyle{
+			width: -1
+		}
 	}
 
 	// "A" is clearly at 0,0
 	layout := ctx.layout_text('A', cfg)!
 
 	// Test hit at middle of first char
-	// We need to know roughly how big "A" is.
-	// Let's pick a safe small point.
 	index := layout.hit_test(5, 5)
 
 	assert index == 0
@@ -110,7 +111,9 @@ fn test_layout_markup() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name:  'Sans 20'
+		style:      TextStyle{
+			font_name: 'Sans 20'
+		}
 		use_markup: true
 	}
 
@@ -134,8 +137,12 @@ fn test_hit_test_rect() {
 	defer { ctx.free() }
 
 	cfg := TextConfig{
-		font_name: 'Sans 20'
-		width:     -1
+		style: TextStyle{
+			font_name: 'Sans 20'
+		}
+		block: BlockStyle{
+			width: -1
+		}
 	}
 
 	layout := ctx.layout_text('A', cfg)!

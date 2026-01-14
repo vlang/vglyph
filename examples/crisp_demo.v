@@ -51,8 +51,10 @@ fn (mut app CrispApp) draw() {
 		text := 'The quick brown fox jumps over the lazy dog (${size}px) - Standard'
 		// Size is passed in font_name string for Pango
 		cfg := vglyph.TextConfig{
-			font_name: 'Arial ${size}'
-			color:     gg.black
+			style: vglyph.TextStyle{
+				font_name: 'Arial ${size}'
+				color:     gg.black
+			}
 		}
 
 		layout := app.text_system.layout_text(text, cfg) or { panic(err) }

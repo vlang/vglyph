@@ -63,14 +63,16 @@ Standard engines support "Attributed Strings"—single text buffers with multipl
     - Refactor `Context.layout_text` to accept this structure.
     - Allows programmatic toggling of bold/color ranges without string operations.
 
-### 2.2 Paragraph Styles
+### 2.2 Block Styles
 **Priority:** Medium
 **Impact:** Required for document editors.
 
-- **Current State:** `TextConfig` mixes character style (Font, Color) with paragraph style
+- **Current State:** `TextConfig` mixes character style (Font, Color) with block style
   (Align, Wrap).
-- **Recommendation:** Split `TextConfig` into `TextStyle` (Font, Color, Size) and `ParagraphStyle`
-  (Alignment, Wrap, LineHeight, Indent, SpacingBefore/After).
+- **Recommendation:** Split `TextConfig` into two distinct structures:
+    - `TextStyle`: Character-level attributes (Font, Color, Size, Decorations).
+    - `BlockStyle`: Layout attributes (Alignment, Wrap, Width, LineHeight, Indent).
+    - `TextConfig` will compose these as distinct fields: `style` and `block`.
 
 ### 2.3 Inline Objects
 **Priority:** Low

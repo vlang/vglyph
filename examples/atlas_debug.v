@@ -38,14 +38,18 @@ fn frame(mut app AppAtlasDebug) {
 	// We'll use a mix of characters to fill it up a bit.
 	txt := 'Hello World! This is a test of the glyph atlas.'
 	cfg := vglyph.TextConfig{
-		font_name: 'RobotoMono-Regular 24'
-		color:     gg.white
+		style: vglyph.TextStyle{
+			font_name: 'RobotoMono-Regular 24'
+			color:     gg.white
+		}
 	}
 	app.text_system.draw_text(50, 10, txt, cfg) or { panic(err) }
 
 	cfg2 := vglyph.TextConfig{
-		font_name: 'RobotoMono-Regular 16'
-		color:     gg.yellow
+		style: vglyph.TextStyle{
+			font_name: 'RobotoMono-Regular 16'
+			color:     gg.yellow
+		}
 	}
 	app.text_system.draw_text(50, 60, 'Using different sizes puts more glyphs in the atlas.',
 		cfg2) or { panic(err) }

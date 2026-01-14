@@ -111,8 +111,10 @@ fn frame(mut app App) {
 	// 2. Draw Text
 	// Coordinates are (x, y)
 	app.ts.draw_text(100, 100, 'Hello VGlyph!', vglyph.TextConfig{
-		font_name: 'Sans Bold 30'
-		color:     gg.black
+		style: vglyph.TextStyle{
+			font_name: 'Sans Bold 30'
+			color:     gg.black
+		}
 	}) or { println(err) }
 
 	app.gg.end()
@@ -170,7 +172,7 @@ rt := vglyph.RichText{
         vglyph.StyleRun{ text: 'Hello ' },
         vglyph.StyleRun{
             text: 'World', 
-            style: vglyph.RichTextStyle{
+            style: vglyph.TextStyle{
                 color: gg.red, 
                 underline: true
             } 

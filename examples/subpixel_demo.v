@@ -52,8 +52,10 @@ fn (mut app App) draw() {
 	for size in sizes {
 		text := 'Subpixel AA Test: The quick brown fox jumps over the lazy dog (${size}px)'
 		cfg := vglyph.TextConfig{
-			font_name: 'Sans ${size}'
-			color:     gg.black
+			style: vglyph.TextStyle{
+				font_name: 'Sans ${size}'
+				color:     gg.black
+			}
 		}
 
 		layout := app.text_system.layout_text(text, cfg) or { panic(err) }
@@ -75,8 +77,10 @@ fn (mut app App) draw() {
 	for i, col in colors {
 		text := 'Colored Text Test (${colors[i]})'
 		cfg := vglyph.TextConfig{
-			font_name: 'Sans 16'
-			color:     col
+			style: vglyph.TextStyle{
+				font_name: 'Sans 16'
+				color:     col
+			}
 		}
 		layout := app.text_system.layout_text(text, cfg) or { panic(err) }
 		app.renderer.draw_layout(layout, f32(x_pos), f32(y_pos))

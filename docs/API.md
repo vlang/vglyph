@@ -7,6 +7,8 @@ library.
 
 - [TextSystem](#textsystem) - High-level API for easy rendering.
 - [TextConfig](#textconfig) - Configuration for styling/layout.
+- [TextStyle](#textstyle) - Character styling attributes.
+- [BlockStyle](#blockstyle) - Paragraph layout attributes.
 - [Context](#context-struct) - Low-level text layout engine.
 - [Layout](#layout-struct) - Result of text shaping.
 - [Renderer](#renderer-struct) - Low-level rendering engine.
@@ -110,23 +112,44 @@ default font).
 
 ➡️ `struct TextConfig`
 
-Configuration struct for defining how text should be laid out and styled.
+Configuration struct for defining how text should be laid out and styled. It composes `TextStyle`
+and `BlockStyle`.
 
-| Field           | Type        | Default       | Description                                          |
-|:----------------|:------------|:--------------|:-----------------------------------------------------|
-| `font_name`     | `string`    | -             | Pango font description (e.g. `'Sans Bold 12'`).      |
-| `size`          | `f32`       | `0.0`         | Explicit size (points). 0 = use `font_name`.         |
-| `width`         | `f32`       | `-1.0`        | Wrapping width in pixels. `-1` denotes no wrapping.  |
-| `align`         | `Alignment` | `.left`       | Horizontal alignment (`.left`, `.center`, `.right`). |
-| `wrap`          | `WrapMode`  | `.word`       | Wrapping strategy (`.word`, `.char`, `.word_char`).  |
-| `use_markup`    | `bool`      | `false`       | Enable [Pango Markup](./GUIDES.md#rich-text-markup). |
-| `color`         | `gg.Color`  | `black`       | Default text color.                                  |
-| `bg_color`      | `gg.Color`  | `transparent` | Background color (highlight).                        |
-| `underline`       | `bool`             | `false`       | Draw a single underline.                             |
-| `strikethrough`   | `bool`             | `false`       | Draw a strikethrough line.                           |
-| `tabs`            | `[]int`            | `[]`          | Custom tab stops in pixels.                          |
-| `opentype_features`| `map[string]int`  | `{}`          | OpenType feature tags (e.g., `{'smcp': 1}`).         |
-| `variation_axes`  | `map[string]f32`   | `{}`          | Variable font axes (e.g., `{'wght': 700.0}`).        |
+| Field        | Type         | Default | Description                                          |
+|:-------------|:-------------|:--------|:-----------------------------------------------------|
+| `style`      | `TextStyle`  | `{}`    | Character styling attributes.                        |
+| `block`      | `BlockStyle` | `{}`    | Paragraph layout attributes.                         |
+| `use_markup` | `bool`       | `false` | Enable [Pango Markup](./GUIDES.md#rich-text-markup). |
+
+## TextStyle
+
+➡️ `struct TextStyle`
+
+Defines character-level styling attributes.
+
+| Field               | Type             | Default       | Description                                          |
+|:--------------------|:-----------------|:--------------|:-----------------------------------------------------|
+| `font_name`         | `string`         | -             | Pango font description (e.g. `'Sans Bold 12'`).      |
+| `size`              | `f32`            | `0.0`         | Explicit size (points). 0 = use `font_name`.         |
+| `color`             | `gg.Color`       | `black`       | Default text color.                                  |
+| `bg_color`          | `gg.Color`       | `transparent` | Background color (highlight).                        |
+| `underline`         | `bool`           | `false`       | Draw a single underline.                             |
+| `strikethrough`     | `bool`           | `false`       | Draw a strikethrough line.                           |
+| `opentype_features` | `map[string]int` | `{}`          | OpenType feature tags (e.g., `{'smcp': 1}`).         |
+| `variation_axes`    | `map[string]f32` | `{}`          | Variable font axes (e.g., `{'wght': 700.0}`).        |
+
+## BlockStyle
+
+➡️ `struct BlockStyle`
+
+Defines paragraph-level layout attributes.
+
+| Field   | Type        | Default | Description                                          |
+|:--------|:------------|:--------|:-----------------------------------------------------|
+| `width` | `f32`       | `-1.0`  | Wrapping width in pixels. `-1` denotes no wrapping.  |
+| `align` | `Alignment` | `.left` | Horizontal alignment (`.left`, `.center`, `.right`). |
+| `wrap`  | `WrapMode`  | `.word` | Wrapping strategy (`.word`, `.char`, `.word_char`).  |
+| `tabs`  | `[]int`     | `[]`    | Custom tab stops in pixels.                          |
 
 ## Rich Text API
 
@@ -141,22 +164,7 @@ A container for a sequence of style runs, forming a complete paragraph.
 A chunk of text with a specific style.
 
 - `text`: `string`
-- `style`: `RichTextStyle`
-
-➡️ `struct RichTextStyle`
-
-Subset of `TextConfig` for character-level styling.
-
-| Field               | Type         | Description |
-|:--------------------|:-------------|:------------|
-| `font_name`         | `string`     | Font description override. |
-| `size`              | `f32`        | Font size override (points). |
-| `color`             | `gg.Color`   | Text color. |
-| `bg_color`          | `gg.Color`   | Background color. |
-| `underline`         | `bool`       | |
-| `strikethrough`     | `bool`       | |
-| `opentype_features` | `map[string]int` | |
-| `variation_axes`    | `map[string]f32` | |
+- `style`: `TextStyle`
 
 
 ## Context (Struct)

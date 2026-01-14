@@ -40,12 +40,18 @@ fn frame(mut app AppApi) {
 
 	// 1. Simple text drawing
 	cfg := vglyph.TextConfig{
-		font_name: 'sans 16px'
-		width:     0 // no wrapping
+		style: vglyph.TextStyle{
+			font_name: 'sans 16px'
+		}
+		block: vglyph.BlockStyle{
+			width: 0
+		}
 	}
 	app.ts.draw_text(50, 10, 'Hello, New API! (px)', vglyph.TextConfig{
-		...cfg
-		font_name: cfg.font_name + 'px'
+		style: vglyph.TextStyle{
+			font_name: cfg.style.font_name + 'pt'
+		}
+		block: cfg.block
 	}) or { panic(err) }
 
 	app.ctx.draw_text(250, 10, 'Hello, New API!', gg.TextCfg{
@@ -61,10 +67,14 @@ fn frame(mut app AppApi) {
 	// 2. Text with wrapping and measurement
 	long_text := 'This usage pattern is much cleaner. The system handles layout caching internally.'
 	wrap_cfg := vglyph.TextConfig{
-		font_name: 'Impact 20'
-		width:     300
-		wrap:      .word
-		align:     .left
+		style: vglyph.TextStyle{
+			font_name: 'Impact 20'
+		}
+		block: vglyph.BlockStyle{
+			width: 300
+			wrap:  .word
+			align: .left
+		}
 	}
 
 	app.ts.draw_text(50, 100, long_text, wrap_cfg) or { panic(err) }
@@ -77,7 +87,9 @@ fn frame(mut app AppApi) {
 	// 3. Colored/Markup text
 	markup := '<span foreground="red">Red</span> and <span foreground="blue">Blue</span> text mixed together.'
 	markup_cfg := vglyph.TextConfig{
-		font_name:  'Monospace 18'
+		style:      vglyph.TextStyle{
+			font_name: 'Monospace 18'
+		}
 		use_markup: true
 	}
 	app.ts.draw_text(50, 300, markup, markup_cfg) or { panic(err) }

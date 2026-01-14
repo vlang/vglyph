@@ -3,6 +3,7 @@ module vglyph
 import gg
 import sokol.sapp
 import time
+import math
 
 struct CachedLayout {
 mut:
@@ -171,65 +172,67 @@ fn (ts TextSystem) get_cache_key(text string, cfg TextConfig) u64 {
 	hash ^= u64(124) // '|'
 	hash *= prime
 
-	// Hash font_name
-	for i in 0 .. cfg.font_name.len {
-		hash ^= u64(cfg.font_name[i])
+	// Hash TextStyle
+	// font_name
+	for i in 0 .. cfg.style.font_name.len {
+		hash ^= u64(cfg.style.font_name[i])
 		hash *= prime
 	}
 
-	// Mix width
-	hash ^= u64(cfg.width)
+	// size
+	hash ^= math.f32_bits(cfg.style.size)
 	hash *= prime
-
-	// Mix align
-	hash ^= u64(cfg.align)
-	hash *= prime
-
-	// Mix wrap
-	hash ^= u64(cfg.wrap)
-	hash *= prime
-
-	if cfg.use_markup {
-		hash ^= 1
-		hash *= prime
-	} else {
-		hash ^= 0
-		hash *= prime
-	}
 
 	// Color
-	hash ^= u64(cfg.color.r)
+	hash ^= u64(cfg.style.color.r)
 	hash *= prime
-	hash ^= u64(cfg.color.g)
+	hash ^= u64(cfg.style.color.g)
 	hash *= prime
-	hash ^= u64(cfg.color.b)
+	hash ^= u64(cfg.style.color.b)
 	hash *= prime
-	hash ^= u64(cfg.color.a)
+	hash ^= u64(cfg.style.color.a)
 	hash *= prime
 
 	// Bg Color
-	hash ^= u64(cfg.bg_color.r)
+	hash ^= u64(cfg.style.bg_color.r)
 	hash *= prime
-	hash ^= u64(cfg.bg_color.g)
+	hash ^= u64(cfg.style.bg_color.g)
 	hash *= prime
-	hash ^= u64(cfg.bg_color.b)
+	hash ^= u64(cfg.style.bg_color.b)
 	hash *= prime
-	hash ^= u64(cfg.bg_color.a)
+	hash ^= u64(cfg.style.bg_color.a)
 	hash *= prime
 
-	if cfg.underline {
+	if cfg.style.underline {
 		hash ^= 1
 		hash *= prime
-	} else {
-		hash ^= 0
+	}
+	if cfg.style.strikethrough {
+		hash ^= 2
 		hash *= prime
 	}
 
-	if cfg.strikethrough {
-		hash ^= 1
+	// Hash BlockStyle
+	// width
+	hash ^= math.f32_bits(cfg.block.width)
+	hash *= prime
+
+	// align
+	hash ^= u64(cfg.block.align)
+	hash *= prime
+
+	// wrap
+	hash ^= u64(cfg.block.wrap)
+	hash *= prime
+
+	// tabs
+	for t in cfg.block.tabs {
+		hash ^= u64(t)
 		hash *= prime
-	} else {
-		hash ^= 0
+	}
+
+	if cfg.use_markup {
+		hash ^= 4
 		hash *= prime
 	}
 
