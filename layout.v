@@ -352,15 +352,15 @@ fn parse_run_attributes(pango_item &C.PangoItem) RunAttributes {
 				if shape_attr.data != nil {
 					// We stored the string pointer in data.
 					// Recover the string.
-                    // We assume the ID is a valid C string (null terminated? V strings are not guaranteed null term if slice?)
-                    // V strings from literals usually are.
-                    // To be safe, we should probably construct a V string from it.
-                    // We know the length? No.
-                    // But we used `obj.id.str`.
-                    attrs.is_object = true
-                    attrs.object_id = cstring_to_vstring(&char(shape_attr.data))
+					// We assume the ID is a valid C string (null terminated? V strings are not guaranteed null term if slice?)
+					// V strings from literals usually are.
+					// To be safe, we should probably construct a V string from it.
+					// We know the length? No.
+					// But we used `obj.id.str`.
+					attrs.is_object = true
+					attrs.object_id = cstring_to_vstring(&char(shape_attr.data))
 				}
-			} 
+			}
 		}
 		curr_attr_node2 = unsafe { curr_attr_node2.next }
 	}
@@ -752,7 +752,7 @@ fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style TextStyle
 		// Adjust with offset.
 		logical_rect := C.PangoRectangle{
 			x:      0
-			y:      -(h) - offset
+			y:      -h - offset
 			width:  w
 			height: h
 		}
@@ -765,7 +765,7 @@ fn apply_rich_text_style(mut ctx Context, list &C.PangoAttrList, style TextStyle
 		mut attr := C.pango_attr_shape_new(&ink_rect, &logical_rect)
 		attr.start_index = u32(start)
 		attr.end_index = u32(end)
-		
+
 		mut shape_attr := unsafe { &C.PangoAttrShape(attr) }
 		shape_attr.data = data_ptr
 

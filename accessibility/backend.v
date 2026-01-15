@@ -1,4 +1,4 @@
-module vglyph
+module accessibility
 
 // AccessibilityBackend is the interface that platform-specific implementations must satisfy.
 // It handles the synchronization between the vglyph logical tree and the OS accessibility tree.

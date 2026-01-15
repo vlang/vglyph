@@ -1,4 +1,4 @@
-module vglyph
+module accessibility
 
 // Stub implementation for non-macOS platforms.
 // This ensures that the code compiles on Windows and Linux without

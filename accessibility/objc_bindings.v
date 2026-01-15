@@ -1,4 +1,4 @@
-module vglyph
+module accessibility
 
 // objc_bindings.v provides low-level bindings to the Objective-C runtime.
 // This is required to implement the NSAccessibility protocol dynamically.
@@ -6,6 +6,7 @@ module vglyph
 @[if darwin]
 #flag -framework Foundation
 #flag -framework Cocoa
+#flag -I @VMODROOT/accessibility
 
 #include "objc_helpers.h"
 

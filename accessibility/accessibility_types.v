@@ -1,4 +1,4 @@
-module vglyph
+module accessibility
 
 import gg
 

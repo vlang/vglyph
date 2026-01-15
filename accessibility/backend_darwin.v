@@ -1,4 +1,4 @@
-module vglyph
+module accessibility
 
 // Darwin (macOS) implementation of the AccessibilityBackend.
 // This file is only compiled on macOS.

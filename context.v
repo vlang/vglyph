@@ -56,13 +56,13 @@ pub fn new_context(scale_factor f32) !&Context {
 			C.FcConfigAppFontAddDir(config, c'/System/Library/Fonts')
 			C.FcConfigAppFontAddDir(config, c'/Library/Fonts')
 			// User fonts?
-            home := os.getenv('HOME')
-            if home != '' {
-                path := '${home}/Library/Fonts'
-			    C.FcConfigAppFontAddDir(config, &char(path.str))
-            }
-            // Trigger update
-            C.pango_fc_font_map_config_changed(pango_font_map)
+			home := os.getenv('HOME')
+			if home != '' {
+				path := '${home}/Library/Fonts'
+				C.FcConfigAppFontAddDir(config, &char(path.str))
+			}
+			// Trigger update
+			C.pango_fc_font_map_config_changed(pango_font_map)
 		}
 	}
 
