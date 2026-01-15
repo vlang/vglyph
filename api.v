@@ -56,26 +56,21 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 	key := ts.get_cache_key(text, cfg)
 	ts.prune_cache()
 
-	if key in ts.cache {
-		mut item := ts.cache[key] or {
-			return error('cache coherency error: key found but access failed')
-		}
-		item.last_access = time.ticks()
-		ts.renderer.draw_layout(item.layout, x, y)
-		if ts.accessibility_enabled {
-			update_accessibility(mut ts.am, item.layout, x, y)
-		}
-	} else {
-		// Cache miss
-		layout := ts.ctx.layout_text(text, cfg) or { return err }
-		ts.cache[key] = &CachedLayout{
+	mut item := ts.cache[key] or {
+		layout := ts.ctx.layout_text(text, cfg)!
+		new_item := &CachedLayout{
 			layout:      layout
-			last_access: time.ticks()
+			last_access: 0
 		}
-		ts.renderer.draw_layout(layout, x, y)
-		if ts.accessibility_enabled {
-			update_accessibility(mut ts.am, layout, x, y)
-		}
+		ts.cache[key] = new_item
+		new_item
+	}
+
+	item.last_access = time.ticks()
+	ts.renderer.draw_layout(item.layout, x, y)
+
+	if ts.accessibility_enabled {
+		update_accessibility(mut ts.am, item.layout, x, y)
 	}
 }
 
@@ -84,20 +79,18 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 pub fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32 {
 	key := ts.get_cache_key(text, cfg)
 
-	if key in ts.cache {
-		mut item := ts.cache[key] or {
-			return error('cache coherency error: key found but access failed')
+	mut item := ts.cache[key] or {
+		layout := ts.ctx.layout_text(text, cfg)!
+		new_item := &CachedLayout{
+			layout:      layout
+			last_access: 0
 		}
-		item.last_access = time.ticks()
-		return item.layout.width
+		ts.cache[key] = new_item
+		new_item
 	}
 
-	layout := ts.ctx.layout_text(text, cfg) or { return err }
-	ts.cache[key] = &CachedLayout{
-		layout:      layout
-		last_access: time.ticks()
-	}
-	return layout.width
+	item.last_access = time.ticks()
+	return item.layout.width
 }
 
 // text_height calculates visual height (pixels) of text.
@@ -105,20 +98,18 @@ pub fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32 {
 pub fn (mut ts TextSystem) text_height(text string, cfg TextConfig) !f32 {
 	key := ts.get_cache_key(text, cfg)
 
-	if key in ts.cache {
-		mut item := ts.cache[key] or {
-			return error('cache coherency error: key found but access failed')
+	mut item := ts.cache[key] or {
+		layout := ts.ctx.layout_text(text, cfg)!
+		new_item := &CachedLayout{
+			layout:      layout
+			last_access: 0
 		}
-		item.last_access = time.ticks()
-		return item.layout.visual_height
+		ts.cache[key] = new_item
+		new_item
 	}
 
-	layout := ts.ctx.layout_text(text, cfg) or { return err }
-	ts.cache[key] = &CachedLayout{
-		layout:      layout
-		last_access: time.ticks()
-	}
-	return layout.visual_height
+	item.last_access = time.ticks()
+	return item.layout.visual_height
 }
 
 // font_height returns the true height of the font (ascent + descent) in pixels.

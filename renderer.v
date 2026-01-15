@@ -245,11 +245,9 @@ pub fn (mut renderer Renderer) max_visual_height(layout Layout) f32 {
 
 			for b in 0 .. 4 {
 				k := font_id ^ (((u64(glyph.index) << 2) | u64(b)) << 32)
-				if k in renderer.cache {
-					cg = renderer.cache[k]
-					found = true
-					break
-				}
+				cg = renderer.cache[k] or { continue }
+				found = true
+				break
 			}
 
 			if !found {
