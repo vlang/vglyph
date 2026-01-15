@@ -165,7 +165,8 @@ Defines character-level styling attributes.
 
 ➡️ `struct InlineObject`
 
-Defines a custom object to be inserted into the text flow. The layout engine reserves space for it, but the user is responsible for drawing the content.
+Defines a custom object to be inserted into the text flow. The layout engine
+reserves space for it, but the user is responsible for drawing the content.
 
 | Field    | Type     | Default | Description                                      |
 |:---------|:---------|:--------|:-------------------------------------------------|

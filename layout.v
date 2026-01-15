@@ -4,6 +4,8 @@ import gg
 import log
 import strings
 
+const space_char = u8(32)
+
 // layout_text shapes, wraps, and arranges text using Pango.
 //
 // Algorithm:
@@ -350,13 +352,6 @@ fn parse_run_attributes(pango_item &C.PangoItem) RunAttributes {
 			if attr.klass.type == .pango_attr_shape {
 				shape_attr := &C.PangoAttrShape(attr)
 				if shape_attr.data != nil {
-					// We stored the string pointer in data.
-					// Recover the string.
-					// We assume the ID is a valid C string (null terminated? V strings are not guaranteed null term if slice?)
-					// V strings from literals usually are.
-					// To be safe, we should probably construct a V string from it.
-					// We know the length? No.
-					// But we used `obj.id.str`.
 					attrs.is_object = true
 					attrs.object_id = cstring_to_vstring(&char(shape_attr.data))
 				}
@@ -480,6 +475,8 @@ fn process_run(run &C.PangoLayoutRun, iter &C.PangoLayoutIter, text string, scal
 	// Get sub-text
 	start_index := pango_item.offset
 	length := pango_item.length
+
+	// Conditionally include run_text for debug builds
 	$if debug {
 		run_str := unsafe { (text.str + start_index).vstring_with_len(length) }
 		return Item{
@@ -565,7 +562,7 @@ fn compute_hit_test_rects(layout &C.PangoLayout, text string, scale_factor f32) 
 		}
 
 		// Fix zero-width spaces
-		if final_w == 0 && text[i] == 32 {
+		if final_w == 0 && text[i] == space_char {
 			final_w = fallback_width
 		}
 

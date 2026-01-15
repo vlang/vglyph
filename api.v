@@ -14,9 +14,11 @@ mut:
 
 pub struct TextSystem {
 mut:
-	ctx                   &Context
-	renderer              &Renderer
-	cache                 map[u64]&CachedLayout
+	ctx      &Context
+	renderer &Renderer
+	cache    map[u64]&CachedLayout
+	// Cache pruning only activates when cache exceeds 10,000 entries.
+	// Items older than eviction_age (milliseconds) are then removed.
 	eviction_age          i64 = 5000 // ms
 	am                    &accessibility.AccessibilityManager
 	accessibility_enabled bool
@@ -53,20 +55,8 @@ pub fn new_text_system_atlas_size(mut gg_ctx gg.Context, atlas_width int, atlas_
 // Handles layout caching to optimize performance for repeated calls.
 // [TextConfig](#TextConfig)
 pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) ! {
-	key := ts.get_cache_key(text, cfg)
 	ts.prune_cache()
-
-	mut item := ts.cache[key] or {
-		layout := ts.ctx.layout_text(text, cfg)!
-		new_item := &CachedLayout{
-			layout:      layout
-			last_access: 0
-		}
-		ts.cache[key] = new_item
-		new_item
-	}
-
-	item.last_access = time.ticks()
+	item := ts.get_or_create_layout(text, cfg)!
 	ts.renderer.draw_layout(item.layout, x, y)
 
 	if ts.accessibility_enabled {
@@ -77,38 +67,14 @@ pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) 
 // text_width calculates width (pixels) of text if rendered with config.
 // Useful for layout calculations before rendering. [TextConfig](#TextConfig)
 pub fn (mut ts TextSystem) text_width(text string, cfg TextConfig) !f32 {
-	key := ts.get_cache_key(text, cfg)
-
-	mut item := ts.cache[key] or {
-		layout := ts.ctx.layout_text(text, cfg)!
-		new_item := &CachedLayout{
-			layout:      layout
-			last_access: 0
-		}
-		ts.cache[key] = new_item
-		new_item
-	}
-
-	item.last_access = time.ticks()
+	item := ts.get_or_create_layout(text, cfg)!
 	return item.layout.width
 }
 
 // text_height calculates visual height (pixels) of text.
 // Corresponds to vertical space occupied. [TextConfig](#TextConfig)
 pub fn (mut ts TextSystem) text_height(text string, cfg TextConfig) !f32 {
-	key := ts.get_cache_key(text, cfg)
-
-	mut item := ts.cache[key] or {
-		layout := ts.ctx.layout_text(text, cfg)!
-		new_item := &CachedLayout{
-			layout:      layout
-			last_access: 0
-		}
-		ts.cache[key] = new_item
-		new_item
-	}
-
-	item.last_access = time.ticks()
+	item := ts.get_or_create_layout(text, cfg)!
 	return item.layout.visual_height
 }
 
@@ -174,6 +140,25 @@ pub fn (mut ts TextSystem) enable_accessibility(enabled bool) {
 // This should be called after drawing logic if accessibility support is desired.
 pub fn (mut ts TextSystem) update_accessibility(l Layout, x f32, y f32) {
 	update_accessibility(mut ts.am, l, x, y)
+}
+
+// get_or_create_layout retrieves a cached layout or creates a new one.
+// Updates the last access time for cache eviction tracking.
+fn (mut ts TextSystem) get_or_create_layout(text string, cfg TextConfig) !&CachedLayout {
+	key := ts.get_cache_key(text, cfg)
+
+	mut item := ts.cache[key] or {
+		layout := ts.ctx.layout_text(text, cfg)!
+		new_item := &CachedLayout{
+			layout:      layout
+			last_access: 0
+		}
+		ts.cache[key] = new_item
+		new_item
+	}
+
+	item.last_access = time.ticks()
+	return item
 }
 
 // Internal Helpers
@@ -267,7 +252,8 @@ fn (mut ts TextSystem) prune_cache() {
 		return
 	}
 
-	// simpler: usage of `keys()` copies the keys, so safe to delete.
+	// Using keys() creates a copy, avoiding iterator invalidation when
+	// deleting entries during iteration.
 	keys := ts.cache.keys()
 	for k in keys {
 		item := ts.cache[k] or { continue }
