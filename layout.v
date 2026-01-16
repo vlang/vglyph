@@ -33,7 +33,7 @@ pub fn (mut ctx Context) layout_text(text string, cfg TextConfig) !Layout {
 	}
 	defer { C.g_object_unref(layout) }
 
-	return build_layout_from_pango(layout, text, ctx.scale_factor)
+	return build_layout_from_pango(layout, text, ctx.scale_factor, cfg)
 }
 
 // layout_rich_text layouts text with multiple styles (RichText).
@@ -97,11 +97,11 @@ pub fn (mut ctx Context) layout_rich_text(rt RichText, cfg TextConfig) !Layout {
 	C.pango_attr_list_unref(attr_list)
 
 	// 4. Process layout
-	return build_layout_from_pango(layout, text, ctx.scale_factor)
+	return build_layout_from_pango(layout, text, ctx.scale_factor, cfg)
 }
 
 // build_layout_from_pango extracts V Items, Lines, and Rects from a configured PangoLayout.
-fn build_layout_from_pango(layout &C.PangoLayout, text string, scale_factor f32) Layout {
+fn build_layout_from_pango(layout &C.PangoLayout, text string, scale_factor f32, cfg TextConfig) Layout {
 	iter := C.pango_layout_get_iter(layout)
 	if iter == unsafe { nil } {
 		// handle error gracefully
@@ -128,7 +128,10 @@ fn build_layout_from_pango(layout &C.PangoLayout, text string, scale_factor f32)
 		}
 	}
 
-	char_rects := compute_hit_test_rects(layout, text, scale_factor)
+	mut char_rects := []CharRect{}
+	if !cfg.no_hit_testing {
+		char_rects = compute_hit_test_rects(layout, text, scale_factor)
+	}
 	lines := compute_lines(layout, iter, scale_factor) // Re-use iter logic or new iter
 
 	ink_rect := C.PangoRectangle{}
@@ -170,8 +173,11 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 	}
 
 	// Apply layout configuration
+	// Apply layout configuration
 	if cfg.block.width > 0 {
-		C.pango_layout_set_width(layout, int(cfg.block.width * pango_scale))
+		// Apply DPI scaling to input width (Logical -> Pango Units)
+		// block.width (Logical) * scale_factor (DPI) * pango_scale (Pango)
+		C.pango_layout_set_width(layout, int(cfg.block.width * ctx.scale_factor * pango_scale))
 		pango_wrap := match cfg.block.wrap {
 			.word { PangoWrapMode.pango_wrap_word }
 			.char { PangoWrapMode.pango_wrap_char }
@@ -186,7 +192,8 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 	}
 	C.pango_layout_set_alignment(layout, pango_align)
 	if cfg.block.indent != 0 {
-		C.pango_layout_set_indent(layout, int(cfg.block.indent * pango_scale))
+		// Apply DPI scaling to indent
+		C.pango_layout_set_indent(layout, int(cfg.block.indent * ctx.scale_factor * pango_scale))
 	}
 
 	desc := ctx.create_font_description(cfg.style)
@@ -271,7 +278,7 @@ fn setup_pango_layout(mut ctx Context, text string, cfg TextConfig) !&C.PangoLay
 		tab_array := C.pango_tab_array_new(cfg.block.tabs.len, 0)
 		for i, pos_px in cfg.block.tabs {
 			// Pango tabs are in Pango units
-			pos_pango := int(pos_px * pango_scale)
+			pos_pango := int(pos_px * ctx.scale_factor * pango_scale)
 			C.pango_tab_array_set_tab(tab_array, i, .pango_tab_left, pos_pango)
 		}
 		C.pango_layout_set_tabs(layout, tab_array)

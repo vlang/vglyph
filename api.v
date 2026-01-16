@@ -55,7 +55,7 @@ pub fn new_text_system_atlas_size(mut gg_ctx gg.Context, atlas_width int, atlas_
 // Handles layout caching to optimize performance for repeated calls.
 // [TextConfig](#TextConfig)
 pub fn (mut ts TextSystem) draw_text(x f32, y f32, text string, cfg TextConfig) ! {
-	ts.prune_cache()
+	// ts.prune_cache() moved to commit()
 	item := ts.get_or_create_layout(text, cfg)!
 	ts.renderer.draw_layout(item.layout, x, y)
 
@@ -91,6 +91,7 @@ pub fn (mut ts TextSystem) commit() {
 	if ts.accessibility_enabled {
 		ts.am.commit()
 	}
+	ts.prune_cache()
 }
 
 pub fn (ts &TextSystem) get_atlas_image() gg.Image {
@@ -114,6 +115,14 @@ pub fn (mut ts TextSystem) resolve_font_name(name string) string {
 // Useful for advanced text manipulation (hit testing, measuring).
 pub fn (mut ts TextSystem) layout_text(text string, cfg TextConfig) !Layout {
 	return ts.ctx.layout_text(text, cfg)
+}
+
+// layout_text_cached retrieves a cached layout or wraps text if not in cache.
+// Returns a copy of the Layout struct (cheap).
+pub fn (mut ts TextSystem) layout_text_cached(text string, cfg TextConfig) !Layout {
+	// ts.prune_cache() moved to commit()
+	item := ts.get_or_create_layout(text, cfg)!
+	return item.layout
 }
 
 // layout_rich_text computes the layout for the given RichText and config.
@@ -239,6 +248,11 @@ fn (ts TextSystem) get_cache_key(text string, cfg TextConfig) u64 {
 
 	if cfg.use_markup {
 		hash ^= 4
+		hash *= prime
+	}
+
+	if cfg.no_hit_testing {
+		hash ^= 8
 		hash *= prime
 	}
 

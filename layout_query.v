@@ -14,6 +14,16 @@ pub fn (l Layout) hit_test_rect(x f32, y f32) ?gg.Rect {
 	return none
 }
 
+// get_char_rect returns the bounding box for a specific character byte index.
+pub fn (l Layout) get_char_rect(index int) ?gg.Rect {
+	for cr in l.char_rects {
+		if cr.index == index {
+			return cr.rect
+		}
+	}
+	return none
+}
+
 // hit_test returns the byte index of the character at (x, y) relative to origin.
 // Returns -1 if no character is found.
 //

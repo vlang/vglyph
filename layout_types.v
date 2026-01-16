@@ -96,9 +96,10 @@ pub enum WrapMode {
 // TextConfig holds configuration for text layout and rendering.
 pub struct TextConfig {
 pub:
-	style      TextStyle
-	block      BlockStyle
-	use_markup bool
+	style          TextStyle
+	block          BlockStyle
+	use_markup     bool
+	no_hit_testing bool
 }
 
 // BlockStyle defines the layout properties of a block of text.

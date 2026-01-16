@@ -52,7 +52,7 @@ fn init(mut app ListApp) {
 		color:     gg.black
 	}
 
-	indent_width := 34 // Pixels
+	indent_width := 20 // Pixels
 
 	// Prepare Layouts
 
