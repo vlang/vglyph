@@ -4,7 +4,7 @@ module accessibility
 // This is required to implement the NSAccessibility protocol dynamically.
 
 @[if darwin]
-#flag -framework Foundation
+#flag macos -framework Foundation
 #flag -framework Cocoa
 #flag -I @VMODROOT/accessibility
 
