@@ -165,3 +165,17 @@ pub struct RichText {
 pub:
 	runs []StyleRun
 }
+
+// TextMetrics contains metrics for a specific font configuration.
+// All values are in pixels.
+pub struct TextMetrics {
+pub:
+	// ascender is the distance from the baseline to the top of the font's bounding box.
+	ascender f32
+	// descender is the distance from the baseline to the bottom of the font's bounding box.
+	descender f32
+	// height is the total height of the font (ascender + descender).
+	height f32
+	// line_gap is the recommended partial spacing between lines.
+	line_gap f32
+}

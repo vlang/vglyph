@@ -85,6 +85,12 @@ pub fn (mut ts TextSystem) font_height(cfg TextConfig) f32 {
 	return ts.ctx.font_height(cfg)
 }
 
+// font_metrics returns the metrics of the font given the config.
+// [TextConfig](#TextConfig)
+pub fn (mut ts TextSystem) font_metrics(cfg TextConfig) TextMetrics {
+	return ts.ctx.font_metrics(cfg)
+}
+
 // commit should be called at the end of the frame to upload the texture atlas.
 pub fn (mut ts TextSystem) commit() {
 	ts.renderer.commit()

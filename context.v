@@ -142,6 +142,52 @@ pub fn (mut ctx Context) font_height(cfg TextConfig) f32 {
 	return (f32(ascent + descent) / f32(pango_scale)) / ctx.scale_factor
 }
 
+// font_metrics returns detailed metrics for the font, including ascender, descender,
+// and line gap. All values are in pixels.
+pub fn (mut ctx Context) font_metrics(cfg TextConfig) TextMetrics {
+	desc := ctx.create_font_description(cfg.style)
+	if desc == unsafe { nil } {
+		log.error('${@FILE_LINE}: Failed to create Pango Font Description')
+		return TextMetrics{}
+	}
+	defer { C.pango_font_description_free(desc) }
+
+	// Get metrics
+	language := C.pango_language_get_default()
+	font := C.pango_context_load_font(ctx.pango_context, desc)
+	if font == unsafe { nil } {
+		log.error('${@FILE_LINE}: Failed to load Pango Font')
+		return TextMetrics{}
+	}
+	defer { C.g_object_unref(font) }
+
+	metrics := C.pango_font_get_metrics(font, language)
+	if metrics == unsafe { nil } {
+		log.error('${@FILE_LINE}: Failed to get Pango Font Metrics')
+		return TextMetrics{}
+	}
+	defer { C.pango_font_metrics_unref(metrics) }
+
+	ascent := C.pango_font_metrics_get_ascent(metrics)
+	descent := C.pango_font_metrics_get_descent(metrics)
+
+	// Note: Pango doesn't directly expose line gap in basic metrics,
+	// but it's often calculated or 0. Using 0 for now as it's not standard in PangoFontMetrics.
+	// We might need to look deeper if line gap is critical, but for now strict ascent/descent is what was asked.
+
+	scale := f32(pango_scale) * ctx.scale_factor
+	ascender_px := f32(ascent) / scale
+	descender_px := f32(descent) / scale
+	height_px := ascender_px + descender_px
+
+	return TextMetrics{
+		ascender:  ascender_px
+		descender: descender_px
+		height:    height_px
+		line_gap:  0 // Standard Pango metrics don't typically include line gap separately
+	}
+}
+
 // resolve_font_name returns the actual font family name that Pango resolves
 // for the given font description string. Useful for debugging system font loading.
 pub fn (mut ctx Context) resolve_font_name(font_desc_str string) string {
