@@ -342,7 +342,9 @@ fn (mut renderer Renderer) load_glyph(cfg LoadGlyphConfig) !CachedGlyph {
 
 	cached, reset, reset_page := match int(ft_bitmap.pixel_mode) {
 		C.FT_PIXEL_MODE_BGRA { renderer.atlas.insert_bitmap(bitmap, 0, bitmap.height)! }
-		else { renderer.atlas.insert_bitmap(bitmap, int(glyph.bitmap_left), int(glyph.bitmap_top))! }
+		else {
+			renderer.atlas.insert_bitmap(bitmap, int(glyph.bitmap_left), int(glyph.bitmap_top))!
+		}
 	}
 
 	if reset {
@@ -910,7 +912,7 @@ fn copy_bitmap_to_page(mut page AtlasPage, bmp Bitmap, x int, y int) ! {
 		return
 	}
 
-	row_bytes := usize(bmp.width * 4)
+	row_bytes := bmp.width * 4
 	for row in 0 .. bmp.height {
 		unsafe {
 			src_ptr := &u8(bmp.data.data) + (row * bmp.width * 4)

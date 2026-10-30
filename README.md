@@ -5,6 +5,9 @@ on **Pango**, **HarfBuzz**, **FreeType**, and **Sokol**.
 
 ### [✨ Overview Image](assets/vglyph-overview.png)
 
+VGlyph records glyphs and decorations through `gg.Context.r`, sharing the
+renderer used by current V graphics applications. Update V and vglyph together.
+
 VGlyph provides production-grade text layout—including bidirectional text,
 complex scripts, and rich text markup—while remaining easy to use.
 
