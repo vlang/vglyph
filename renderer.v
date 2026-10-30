@@ -2,7 +2,7 @@ module vglyph
 
 import gg
 import math
-import sokol.sgl
+import gg.render
 import time
 
 pub struct Bitmap {
@@ -140,8 +140,7 @@ pub fn (mut renderer Renderer) commit() {
 				front_sample := page.staging_front[..sample_len]
 				back_sample := page.staging_back[..sample_len]
 				if front_sample == back_sample {
-					eprintln('[DIAG] WARNING: staging_front == staging_back after swap - frame ${renderer.atlas.frame_counter} glyphs may be missing from frame ${
-						renderer.atlas.frame_counter + 2} upload')
+					eprintln('[DIAG] WARNING: staging_front == staging_back after swap - frame ${renderer.atlas.frame_counter} glyphs may be missing from frame ${renderer.atlas.frame_counter + 2} upload')
 				}
 			}
 			page.image.update_pixel_data(page.staging_front.data)
@@ -519,7 +518,7 @@ fn gradient_color_at(stops []GradientStop, t f32) gg.Color {
 
 // emit_decoration_quad emits an untextured quad with optional gradient.
 // Used for underline/strikethrough decorations.
-fn emit_decoration_quad(transform AffineTransform, ox f32, oy f32, lx f32, ly f32,
+fn emit_decoration_quad(r &render.Context, transform AffineTransform, ox f32, oy f32, lx f32, ly f32,
 	lw f32, lh f32, color gg.Color, use_gradient bool, gradient &GradientConfig,
 	grad_w f32, grad_h f32, grad_x_off f32, grad_y_off f32) {
 	x0, y0 := transform_layout_point(transform, ox, oy, lx, ly)
@@ -533,34 +532,34 @@ fn emit_decoration_quad(transform AffineTransform, ox f32, oy f32, lx f32, ly f3
 			t_right := (lx + lw - grad_x_off) / grad_w
 			c_left := gradient_color_at(gradient.stops, t_left)
 			c_right := gradient_color_at(gradient.stops, t_right)
-			sgl.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
-			sgl.v2f(x0, y0)
-			sgl.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
-			sgl.v2f(x1, y1)
-			sgl.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
-			sgl.v2f(x2, y2)
-			sgl.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
-			sgl.v2f(x3, y3)
+			r.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
+			r.v2f(x0, y0)
+			r.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
+			r.v2f(x1, y1)
+			r.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
+			r.v2f(x2, y2)
+			r.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
+			r.v2f(x3, y3)
 		} else {
 			t_top := (ly - grad_y_off) / grad_h
 			t_bottom := (ly + lh - grad_y_off) / grad_h
 			c_top := gradient_color_at(gradient.stops, t_top)
 			c_bottom := gradient_color_at(gradient.stops, t_bottom)
-			sgl.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
-			sgl.v2f(x0, y0)
-			sgl.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
-			sgl.v2f(x1, y1)
-			sgl.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
-			sgl.v2f(x2, y2)
-			sgl.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
-			sgl.v2f(x3, y3)
+			r.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
+			r.v2f(x0, y0)
+			r.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
+			r.v2f(x1, y1)
+			r.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
+			r.v2f(x2, y2)
+			r.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
+			r.v2f(x3, y3)
 		}
 	} else {
-		sgl.c4b(color.r, color.g, color.b, color.a)
-		sgl.v2f(x0, y0)
-		sgl.v2f(x1, y1)
-		sgl.v2f(x2, y2)
-		sgl.v2f(x3, y3)
+		r.c4b(color.r, color.g, color.b, color.a)
+		r.v2f(x0, y0)
+		r.v2f(x1, y1)
+		r.v2f(x2, y2)
+		r.v2f(x3, y3)
 	}
 }
 
@@ -627,22 +626,22 @@ pub fn (mut renderer Renderer) draw_layout_placed(layout Layout,
 	}
 
 	// Setup projection for SGL quad rendering
-	sgl.matrix_mode_projection()
-	sgl.push_matrix()
-	sgl.load_identity()
+	renderer.ctx.r.matrix_mode_projection()
+	renderer.ctx.r.push_matrix()
+	renderer.ctx.r.load_identity()
 	ws := renderer.ctx.window_size()
-	sgl.ortho(0, f32(ws.width), f32(ws.height), 0, -1, 1)
+	renderer.ctx.r.ortho(0, f32(ws.width), f32(ws.height), 0, -1, 1)
 
-	sgl.matrix_mode_modelview()
-	sgl.push_matrix()
-	sgl.load_identity()
-	sgl.load_pipeline(renderer.ctx.pipeline.alpha)
+	renderer.ctx.r.matrix_mode_modelview()
+	renderer.ctx.r.push_matrix()
+	renderer.ctx.r.load_identity()
+	renderer.ctx.r.load_pipeline(renderer.ctx.pipeline.alpha)
 
 	// Pass 1: Stroke outlines
 	for page_idx, page in renderer.atlas.pages {
-		sgl.enable_texture()
-		sgl.texture(page.image.simg, page.image.ssmp)
-		sgl.begin_quads()
+		renderer.ctx.r.enable_texture()
+		renderer.ctx.r.texture(page.image.simg, page.image.ssmp)
+		renderer.ctx.r.begin_quads()
 
 		for item in layout.items {
 			if !item.has_stroke || item.use_original_color {
@@ -678,15 +677,15 @@ pub fn (mut renderer Renderer) draw_layout_placed(layout Layout,
 				}
 			}
 		}
-		sgl.end()
-		sgl.disable_texture()
+		renderer.ctx.r.end()
+		renderer.ctx.r.disable_texture()
 	}
 
 	// Pass 2: Fill glyphs
 	for page_idx, page in renderer.atlas.pages {
-		sgl.enable_texture()
-		sgl.texture(page.image.simg, page.image.ssmp)
-		sgl.begin_quads()
+		renderer.ctx.r.enable_texture()
+		renderer.ctx.r.texture(page.image.simg, page.image.ssmp)
+		renderer.ctx.r.begin_quads()
 
 		for item in layout.items {
 			if item.has_stroke && item.color.a == 0 {
@@ -734,14 +733,14 @@ pub fn (mut renderer Renderer) draw_layout_placed(layout Layout,
 				}
 			}
 		}
-		sgl.end()
-		sgl.disable_texture()
+		renderer.ctx.r.end()
+		renderer.ctx.r.disable_texture()
 	}
 
-	sgl.pop_matrix()
-	sgl.matrix_mode_projection()
-	sgl.pop_matrix()
-	sgl.matrix_mode_modelview()
+	renderer.ctx.r.pop_matrix()
+	renderer.ctx.r.matrix_mode_projection()
+	renderer.ctx.r.pop_matrix()
+	renderer.ctx.r.matrix_mode_modelview()
 }
 
 // emit_placed_quad draws a single textured glyph quad at the
@@ -810,11 +809,11 @@ fn (renderer &Renderer) emit_placed_quad(cg CachedGlyph,
 	x3 += placement.x
 	y3 += placement.y
 
-	sgl.c4b(color.r, color.g, color.b, color.a)
-	sgl.v2f_t2f(x0, y0, u0, v0)
-	sgl.v2f_t2f(x1, y1, u1, v0)
-	sgl.v2f_t2f(x2, y2, u1, v1)
-	sgl.v2f_t2f(x3, y3, u0, v1)
+	renderer.ctx.r.c4b(color.r, color.g, color.b, color.a)
+	renderer.ctx.r.v2f_t2f(x0, y0, u0, v0)
+	renderer.ctx.r.v2f_t2f(x1, y1, u1, v0)
+	renderer.ctx.r.v2f_t2f(x2, y2, u1, v1)
+	renderer.ctx.r.v2f_t2f(x3, y3, u0, v1)
 }
 
 // draw_layout_impl is the shared implementation for transformed/gradient rendering.
@@ -871,19 +870,19 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 		}
 	}
 
-	sgl.matrix_mode_projection()
-	sgl.push_matrix()
-	sgl.load_identity()
+	renderer.ctx.r.matrix_mode_projection()
+	renderer.ctx.r.push_matrix()
+	renderer.ctx.r.load_identity()
 	ws := renderer.ctx.window_size()
-	sgl.ortho(0, f32(ws.width), f32(ws.height), 0, -1, 1)
+	renderer.ctx.r.ortho(0, f32(ws.width), f32(ws.height), 0, -1, 1)
 
-	sgl.matrix_mode_modelview()
-	sgl.push_matrix()
-	sgl.load_identity()
-	sgl.load_pipeline(renderer.ctx.pipeline.alpha)
+	renderer.ctx.r.matrix_mode_modelview()
+	renderer.ctx.r.push_matrix()
+	renderer.ctx.r.load_identity()
+	renderer.ctx.r.load_pipeline(renderer.ctx.pipeline.alpha)
 
 	// 1. Draw Backgrounds (Untextured)
-	sgl.begin_quads()
+	renderer.ctx.r.begin_quads()
 	for item in layout.items {
 		if item.has_bg_color {
 			run_x := f32(item.x)
@@ -898,14 +897,14 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 			x1, y1 := transform_layout_point(transform, x, y, bg_x + bg_w, bg_y)
 			x2, y2 := transform_layout_point(transform, x, y, bg_x + bg_w, bg_y + bg_h)
 			x3, y3 := transform_layout_point(transform, x, y, bg_x, bg_y + bg_h)
-			sgl.c4b(c.r, c.g, c.b, c.a)
-			sgl.v2f(x0, y0)
-			sgl.v2f(x1, y1)
-			sgl.v2f(x2, y2)
-			sgl.v2f(x3, y3)
+			renderer.ctx.r.c4b(c.r, c.g, c.b, c.a)
+			renderer.ctx.r.v2f(x0, y0)
+			renderer.ctx.r.v2f(x1, y1)
+			renderer.ctx.r.v2f(x2, y2)
+			renderer.ctx.r.v2f(x3, y3)
 		}
 	}
-	sgl.end()
+	renderer.ctx.r.end()
 
 	// 2. Pre-compute stroke radii and ensure stroker for stroked items
 	for item in layout.items {
@@ -918,9 +917,9 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 	// 3. Draw Glyphs (Textured) - two passes: stroke first, then fill
 	// Pass 1: Stroke outlines (background layer)
 	for page_idx, page in renderer.atlas.pages {
-		sgl.enable_texture()
-		sgl.texture(page.image.simg, page.image.ssmp)
-		sgl.begin_quads()
+		renderer.ctx.r.enable_texture()
+		renderer.ctx.r.texture(page.image.simg, page.image.ssmp)
+		renderer.ctx.r.begin_quads()
 
 		for item in layout.items {
 			if !item.has_stroke || item.use_original_color {
@@ -976,25 +975,25 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 					x3, y3 := transform_layout_point(transform, x, y, dst_x, dst_y + dst_h)
 
 					sc := item.stroke_color
-					sgl.c4b(sc.r, sc.g, sc.b, sc.a)
-					sgl.v2f_t2f(x0, y0, u0, v0)
-					sgl.v2f_t2f(x1, y1, u1, v0)
-					sgl.v2f_t2f(x2, y2, u1, v1)
-					sgl.v2f_t2f(x3, y3, u0, v1)
+					renderer.ctx.r.c4b(sc.r, sc.g, sc.b, sc.a)
+					renderer.ctx.r.v2f_t2f(x0, y0, u0, v0)
+					renderer.ctx.r.v2f_t2f(x1, y1, u1, v0)
+					renderer.ctx.r.v2f_t2f(x2, y2, u1, v1)
+					renderer.ctx.r.v2f_t2f(x3, y3, u0, v1)
 				}
 				cx += f32(glyph.x_advance)
 				cy -= f32(glyph.y_advance)
 			}
 		}
-		sgl.end()
-		sgl.disable_texture()
+		renderer.ctx.r.end()
+		renderer.ctx.r.disable_texture()
 	}
 
 	// Pass 2: Fill glyphs (foreground layer)
 	for page_idx, page in renderer.atlas.pages {
-		sgl.enable_texture()
-		sgl.texture(page.image.simg, page.image.ssmp)
-		sgl.begin_quads()
+		renderer.ctx.r.enable_texture()
+		renderer.ctx.r.texture(page.image.simg, page.image.ssmp)
+		renderer.ctx.r.begin_quads()
 
 		for item in layout.items {
 			// Skip hollow items (stroke-only with transparent fill)
@@ -1079,46 +1078,46 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 							t_right := (dst_x + dst_w - grad_x_off) / grad_w
 							c_left := gradient_color_at(gradient.stops, t_left)
 							c_right := gradient_color_at(gradient.stops, t_right)
-							sgl.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
-							sgl.v2f_t2f(x0, y0, u0, v0)
-							sgl.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
-							sgl.v2f_t2f(x1, y1, u1, v0)
-							sgl.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
-							sgl.v2f_t2f(x2, y2, u1, v1)
-							sgl.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
-							sgl.v2f_t2f(x3, y3, u0, v1)
+							renderer.ctx.r.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
+							renderer.ctx.r.v2f_t2f(x0, y0, u0, v0)
+							renderer.ctx.r.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
+							renderer.ctx.r.v2f_t2f(x1, y1, u1, v0)
+							renderer.ctx.r.c4b(c_right.r, c_right.g, c_right.b, c_right.a)
+							renderer.ctx.r.v2f_t2f(x2, y2, u1, v1)
+							renderer.ctx.r.c4b(c_left.r, c_left.g, c_left.b, c_left.a)
+							renderer.ctx.r.v2f_t2f(x3, y3, u0, v1)
 						} else {
 							t_top := (dst_y - grad_y_off) / grad_h
 							t_bottom := (dst_y + dst_h - grad_y_off) / grad_h
 							c_top := gradient_color_at(gradient.stops, t_top)
 							c_bottom := gradient_color_at(gradient.stops, t_bottom)
-							sgl.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
-							sgl.v2f_t2f(x0, y0, u0, v0)
-							sgl.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
-							sgl.v2f_t2f(x1, y1, u1, v0)
-							sgl.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
-							sgl.v2f_t2f(x2, y2, u1, v1)
-							sgl.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
-							sgl.v2f_t2f(x3, y3, u0, v1)
+							renderer.ctx.r.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
+							renderer.ctx.r.v2f_t2f(x0, y0, u0, v0)
+							renderer.ctx.r.c4b(c_top.r, c_top.g, c_top.b, c_top.a)
+							renderer.ctx.r.v2f_t2f(x1, y1, u1, v0)
+							renderer.ctx.r.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
+							renderer.ctx.r.v2f_t2f(x2, y2, u1, v1)
+							renderer.ctx.r.c4b(c_bottom.r, c_bottom.g, c_bottom.b, c_bottom.a)
+							renderer.ctx.r.v2f_t2f(x3, y3, u0, v1)
 						}
 					} else {
-						sgl.c4b(c.r, c.g, c.b, c.a)
-						sgl.v2f_t2f(x0, y0, u0, v0)
-						sgl.v2f_t2f(x1, y1, u1, v0)
-						sgl.v2f_t2f(x2, y2, u1, v1)
-						sgl.v2f_t2f(x3, y3, u0, v1)
+						renderer.ctx.r.c4b(c.r, c.g, c.b, c.a)
+						renderer.ctx.r.v2f_t2f(x0, y0, u0, v0)
+						renderer.ctx.r.v2f_t2f(x1, y1, u1, v0)
+						renderer.ctx.r.v2f_t2f(x2, y2, u1, v1)
+						renderer.ctx.r.v2f_t2f(x3, y3, u0, v1)
 					}
 				}
 				cx += f32(glyph.x_advance)
 				cy -= f32(glyph.y_advance)
 			}
 		}
-		sgl.end()
-		sgl.disable_texture()
+		renderer.ctx.r.end()
+		renderer.ctx.r.disable_texture()
 	}
 
 	// 3. Draw Text Decorations (Untextured)
-	sgl.begin_quads()
+	renderer.ctx.r.begin_quads()
 	for item in layout.items {
 		if item.has_underline || item.has_strikethrough {
 			run_x := f32(item.x)
@@ -1130,7 +1129,7 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 				line_w := f32(item.width)
 				line_h := f32(item.underline_thickness)
 
-				emit_decoration_quad(transform, x, y, line_x, line_y, line_w, line_h, item.color,
+				emit_decoration_quad(renderer.ctx.r, transform, x, y, line_x, line_y, line_w, line_h, item.color,
 
 					has_gradient && !item.use_original_color, gradient, grad_w, grad_h, grad_x_off,
 					grad_y_off)
@@ -1142,20 +1141,20 @@ fn (mut renderer Renderer) draw_layout_impl(layout Layout, x f32, y f32,
 				line_w := f32(item.width)
 				line_h := f32(item.strikethrough_thickness)
 
-				emit_decoration_quad(transform, x, y, line_x, line_y, line_w, line_h, item.color,
+				emit_decoration_quad(renderer.ctx.r, transform, x, y, line_x, line_y, line_w, line_h, item.color,
 
 					has_gradient && !item.use_original_color, gradient, grad_w, grad_h, grad_x_off,
 					grad_y_off)
 			}
 		}
 	}
-	sgl.end()
+	renderer.ctx.r.end()
 
-	sgl.pop_matrix() // Pop Modelview
+	renderer.ctx.r.pop_matrix() // Pop Modelview
 
-	sgl.matrix_mode_projection()
-	sgl.pop_matrix()
-	sgl.matrix_mode_modelview()
+	renderer.ctx.r.matrix_mode_projection()
+	renderer.ctx.r.pop_matrix()
+	renderer.ctx.r.matrix_mode_modelview()
 }
 
 // draw_composition renders IME preedit text with visual feedback.
